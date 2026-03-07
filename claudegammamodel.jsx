@@ -327,11 +327,16 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                     <div style={{ width: 175, flexShrink: 0 }}>
                         <Box style={{ padding: 8 }}>
                             <div style={{ fontSize: 9, fontWeight: 600, color: t2, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>9 Solution Lines</div>
-                            {prods.map((pr, i) => (
-                                <button key={pr.id} onClick={() => setSel(i)} style={{ display: "flex", alignItems: "center", gap: 5, width: "100%", padding: "5px 7px", border: "none", borderRadius: 4, cursor: "pointer", marginBottom: 1, textAlign: "left", background: sel === i ? `${pr.color}20` : "transparent", borderLeft: sel === i ? `3px solid ${pr.color}` : "3px solid transparent", color: sel === i ? t1 : t2, fontSize: 10, transition: "all 0.12s" }}>
-                                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: pr.color, flexShrink: 0 }} />
-                                    <span style={{ fontWeight: sel === i ? 600 : 400 }}>{pr.name}</span>
-                                </button>
+                            {CATS.map(cat => (
+                                <div key={cat} style={{ marginBottom: 10 }}>
+                                    <div style={{ fontSize: 9, color: CAT_C[cat], fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4, marginLeft: 2 }}>{cat}</div>
+                                    {prods.map((pr, i) => pr.cat === cat && (
+                                        <button key={pr.id} onClick={() => setSel(i)} style={{ display: "flex", alignItems: "center", gap: 5, width: "100%", padding: "5px 7px", border: "none", borderRadius: 4, cursor: "pointer", marginBottom: 1, textAlign: "left", background: sel === i ? `${pr.color}20` : "transparent", borderLeft: sel === i ? `3px solid ${pr.color}` : "3px solid transparent", color: sel === i ? t1 : t2, fontSize: 10, transition: "all 0.12s" }}>
+                                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: pr.color, flexShrink: 0 }} />
+                                            <span style={{ fontWeight: sel === i ? 600 : 400 }}>{pr.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             ))}
                         </Box>
                     </div>
