@@ -132,19 +132,36 @@
         window.addEventListener('error', (e) => {
             const rootEl = document.getElementById('root');
             if (rootEl) {
-                rootEl.innerHTML = `<div class="error-message" style="margin:20px;">Uncaught Error: ${e.message}<br/>Check browser console for more details.</div>`;
+                rootEl.textContent = '';
+                const errDiv = document.createElement('div');
+                errDiv.className = 'error-message';
+                errDiv.style.margin = '20px';
+                errDiv.style.whiteSpace = 'pre-wrap';
+                errDiv.textContent = `Uncaught Error: ${e.message}\nCheck browser console for more details.`;
+                rootEl.appendChild(errDiv);
             }
         });
         window.addEventListener('unhandledrejection', (e) => {
             const rootEl = document.getElementById('root');
             if (rootEl) {
                 const msg = e.reason && e.reason.message ? e.reason.message : e.reason;
-                rootEl.innerHTML = `<div class="error-message" style="margin:20px;">Unhandled Promise Rejection: ${msg}<br/>Check browser console for more details.</div>`;
+                rootEl.textContent = '';
+                const errDiv = document.createElement('div');
+                errDiv.className = 'error-message';
+                errDiv.style.margin = '20px';
+                errDiv.style.whiteSpace = 'pre-wrap';
+                errDiv.textContent = `Unhandled Promise Rejection: ${msg}\nCheck browser console for more details.`;
+                rootEl.appendChild(errDiv);
             }
         });
 
         const rootElement = document.getElementById('root');
         const root = createRoot(rootElement);
+
+        const ALLOWED_FILES = [
+            'truelayer-calculator-reverse-engineered.jsx',
+            'gammamodel.jsx'
+        ];
 
         const SHARE_PARAM = 'state';
         const DEFAULT_FILE = 'truelayer-calculator-reverse-engineered.jsx';
@@ -327,6 +344,10 @@
 
         async function loadJSX(filename, { initialSettingsOverrides = {}, pushHistory = true } = {}) {
             try {
+                if (!ALLOWED_FILES.includes(filename)) {
+                    throw new Error(`Unauthorized file: ${filename}`);
+                }
+
                 root.render(React.createElement('div', { className: 'loading' }, `Loading ${filename}...`));
 
                 // Fetch the JSX file
