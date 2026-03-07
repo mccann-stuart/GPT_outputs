@@ -122,10 +122,6 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                     <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Gamma Communications PLC — Market Model</h1>
                     <div style={{ fontSize: 10, color: t2 }}>FY2022–FY2024 Actuals · H1 2025 · 9-Line Driver Tree Projections · LON:GAMA</div>
                 </div>
-                <div style={{ fontSize: 10, color: t3, textAlign: "right" }}>
-                    <div>FY2024 Rev: £579.4m</div>
-                    <div>H1 2025 Rev: £316.6m</div>
-                </div>
             </div>
 
             <div style={{ display: "flex", gap: 2, marginBottom: 12, background: "#060a14", borderRadius: 6, padding: 3 }}>
