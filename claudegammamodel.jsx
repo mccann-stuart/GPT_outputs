@@ -42,7 +42,7 @@ const ACTUALS = {
 };
 
 /* ═══════════════════════════════════════════
-   9 PRODUCT DRIVER TREES (from Excel workbook)
+   9 PRODUCT DRIVER TREES (calibrated to FY2024 + H1 2025 disclosed scale)
    ═══════════════════════════════════════════ */
 const PRODUCTS = [
     {
@@ -50,72 +50,72 @@ const PRODUCTS = [
         eq: "Seats × annual ARPU",
         quantity: [{ l: "Addressable micro/SMB businesses", v: 5200000 }, { l: "Sites per business", v: 1.0 }, { l: "Seats per site", v: 1.8 }, { l: "Cloud adoption rate", v: 0.12 }, { l: "Gamma share", v: 0.04 }],
         price: [{ l: "Base monthly ARPU", v: 8.5 }, { l: "Add-on ARPU", v: 2.0 }, { l: "Annual activation", v: 18 }],
-        cagr: [{ l: "Base SMB growth", v: 0.01 }, { l: "PSTN switch-off", v: 0.04 }, { l: "Cloud migration", v: 0.025 }, { l: "Digital penetration", v: 0.02 }, { l: "Macro drag", v: -0.015 }],
-        anchors: [{ m: "PhoneLine+ seats", v: "45k" }, { m: "UK cloud net adds H1", v: "23k" }, { m: "DE cloud seats", v: "565k" }]
+        cagr: [{ l: "Base SMB growth", v: 0.015 }, { l: "PSTN switch-off", v: 0.035 }, { l: "Cloud migration", v: 0.025 }, { l: "Digital penetration", v: 0.03 }, { l: "Macro drag", v: -0.015 }],
+        anchors: [{ m: "PhoneLine+ seats (Jun 2025)", v: "45k" }, { m: "PhoneLine+ growth H1", v: "+32%" }, { m: "UK cloud net adds H1", v: "23k" }, { m: "PSTN fibre headwind H1", v: "£1.5m GP" }]
     },
     {
         id: "horizon", name: "Horizon / STARFACE", cat: "Cloud Comms", color: "#8b5cf6", tamUnit: "Seats",
         eq: "Seats × annual ARPU",
-        quantity: [{ l: "Addressable SMB/mid-market", v: 2800000 }, { l: "Employees per business", v: 12 }, { l: "Telephony % of employees", v: 0.70 }, { l: "Cloud PBX adoption", v: 0.18 }, { l: "Gamma share", v: 0.035 }],
-        price: [{ l: "Base monthly ARPU", v: 12.5 }, { l: "Premium/AI add-on", v: 3.5 }, { l: "Annual devices/services", v: 35 }],
-        cagr: [{ l: "Base seat growth", v: 0.01 }, { l: "HW PBX→cloud", v: 0.035 }, { l: "DE underpenetration", v: 0.03 }, { l: "AI/feature upsell", v: 0.02 }, { l: "Macro drag", v: -0.015 }],
-        anchors: [{ m: "UK Cloud PBX seats", v: "1,063k" }, { m: "DE cloud seats", v: "565k" }, { m: "Total cloud", v: "1.8m" }, { m: "DE H1 adds", v: "29k" }]
+        quantity: [{ l: "Addressable SMB/mid-market", v: 2800000 }, { l: "Employees per business", v: 12 }, { l: "Telephony % of employees", v: 0.70 }, { l: "Cloud PBX adoption", v: 0.18 }, { l: "Gamma share", v: 0.35 }],
+        price: [{ l: "Base monthly ARPU", v: 11.5 }, { l: "Premium/AI add-on", v: 3.2 }, { l: "Annual devices/services", v: 28 }],
+        cagr: [{ l: "Base seat growth", v: 0.01 }, { l: "HW PBX→cloud", v: 0.03 }, { l: "DE underpenetration", v: 0.025 }, { l: "AI/feature upsell", v: 0.015 }, { l: "Macro drag", v: -0.01 }],
+        anchors: [{ m: "UK Cloud PBX seats", v: "1,063k" }, { m: "Europe Cloud PBX seats", v: "687k" }, { m: "DE cloud seats", v: "565k" }, { m: "DE H1 adds", v: "29k" }]
     },
     {
         id: "cisco", name: "Cisco / iPECS", cat: "Cloud Comms", color: "#a855f7", tamUnit: "Users",
         eq: "Users × annual ARPU",
-        quantity: [{ l: "Addressable collab customers", v: 450000 }, { l: "Users per customer", v: 35 }, { l: "Telephony attach", v: 0.25 }, { l: "Countries per customer", v: 1.3 }, { l: "Gamma win rate", v: 0.008 }],
-        price: [{ l: "Monthly licence ARPU", v: 15 }, { l: "Voice/managed ARPU", v: 5 }, { l: "Annual implementation", v: 40 }],
-        cagr: [{ l: "Base collab growth", v: 0.02 }, { l: "Cisco channel activation", v: 0.08 }, { l: "International rollout", v: 0.04 }, { l: "AI/advanced features", v: 0.02 }, { l: "Provisioning drag", v: -0.02 }],
-        anchors: [{ m: "Cisco users", v: "28k" }, { m: "H1 growth", v: "75%" }, { m: "Spain commitment", v: "40k seats" }, { m: "Run-rate", v: "2k/mo" }]
+        quantity: [{ l: "Addressable collab customers", v: 450000 }, { l: "Users per customer", v: 35 }, { l: "Telephony attach", v: 0.25 }, { l: "Countries per customer", v: 1.3 }, { l: "Gamma win rate", v: 0.0055 }],
+        price: [{ l: "Monthly licence ARPU", v: 13 }, { l: "Voice/managed ARPU", v: 4 }, { l: "Annual implementation", v: 30 }],
+        cagr: [{ l: "Base collab growth", v: 0.02 }, { l: "Cisco channel activation", v: 0.07 }, { l: "International rollout", v: 0.03 }, { l: "AI/advanced features", v: 0.015 }, { l: "Provisioning drag", v: -0.015 }],
+        anchors: [{ m: "Cisco users (Jun 2025)", v: "28k" }, { m: "H1 growth", v: "75%" }, { m: "Spain commitment", v: "40k seats / 5y" }, { m: "Run-rate (Aug 2025)", v: ">2k/mo" }]
     },
     {
         id: "sip", name: "SIP Trunking", cat: "Calling", color: "#f59e0b", tamUnit: "Trunks",
         eq: "Trunks × annual ARPU",
-        quantity: [{ l: "Addressable PBX sites", v: 1800000 }, { l: "Sites per customer", v: 2.2 }, { l: "Trunks per site", v: 4.5 }, { l: "SIP attach/retention", v: 0.22 }, { l: "Gamma share", v: 0.045 }],
-        price: [{ l: "Monthly trunk ARPU", v: 4.5 }, { l: "Traffic/hosting ARPU", v: 2.0 }, { l: "Annual porting/setup", v: 8 }],
-        cagr: [{ l: "Base trunk growth", v: -0.02 }, { l: "PSTN replacement", v: 0.02 }, { l: "Non-Gamma PBX support", v: 0.015 }, { l: "Europe retention", v: 0.01 }, { l: "HW→cloud drag", v: -0.04 }],
-        anchors: [{ m: "UK trad PBX SIP", v: "902k" }, { m: "EU trad SIP", v: "201k" }, { m: "UK non-Gamma cloud SIP", v: "498k" }, { m: "H1 conversions", v: "30k" }]
+        quantity: [{ l: "Addressable PBX sites", v: 1800000 }, { l: "Sites per customer", v: 2.2 }, { l: "Trunks per site", v: 4.5 }, { l: "SIP attach/retention", v: 0.22 }, { l: "Gamma share", v: 0.35 }],
+        price: [{ l: "Monthly trunk ARPU", v: 4.0 }, { l: "Traffic/hosting ARPU", v: 1.5 }, { l: "Annual porting/setup", v: 6 }],
+        cagr: [{ l: "Base trunk growth", v: -0.015 }, { l: "PSTN replacement", v: 0.015 }, { l: "Non-Gamma PBX support", v: 0.02 }, { l: "Europe retention", v: 0.005 }, { l: "HW→cloud drag", v: -0.03 }],
+        anchors: [{ m: "UK trad PBX SIP (Jun 2025)", v: "902k" }, { m: "EU trad SIP (Jun 2025)", v: "201k" }, { m: "UK non-Gamma cloud SIP", v: "498k" }, { m: "UK SIP PBX (Dec 2024)", v: "932k" }]
     },
     {
         id: "voice", name: "Voice Enablement", cat: "Calling", color: "#22c55e", tamUnit: "Users",
         eq: "Users × annual ARPU",
-        quantity: [{ l: "Addressable UC customers", v: 850000 }, { l: "Users per customer", v: 45 }, { l: "Voice attach rate", v: 0.15 }, { l: "Countries per deployment", v: 1.4 }, { l: "Gamma share", v: 0.009 }],
-        price: [{ l: "Monthly enablement ARPU", v: 3.5 }, { l: "Numbering/managed ARPU", v: 1.5 }, { l: "Annual provisioning", v: 10 }],
-        cagr: [{ l: "Base UC growth", v: 0.03 }, { l: "Teams/OC adoption", v: 0.06 }, { l: "International rollout", v: 0.03 }, { l: "Hyperscaler partnerships", v: 0.02 }, { l: "Price pressure drag", v: -0.02 }],
-        anchors: [{ m: "UK Teams users", v: "523k" }, { m: "EU Teams users", v: "17k" }, { m: "UK H1 adds", v: "56k" }, { m: "OC International", v: "14 countries" }]
+        quantity: [{ l: "Addressable UC customers", v: 850000 }, { l: "Users per customer", v: 45 }, { l: "Voice attach rate", v: 0.15 }, { l: "Countries per deployment", v: 1.4 }, { l: "Gamma share", v: 0.067 }],
+        price: [{ l: "Monthly enablement ARPU", v: 3.0 }, { l: "Numbering/managed ARPU", v: 1.3 }, { l: "Annual provisioning", v: 8 }],
+        cagr: [{ l: "Base UC growth", v: 0.025 }, { l: "Teams/OC adoption", v: 0.04 }, { l: "International rollout", v: 0.02 }, { l: "Hyperscaler partnerships", v: 0.01 }, { l: "Price pressure drag", v: -0.015 }],
+        anchors: [{ m: "UK Teams users (Jun 2025)", v: "523k" }, { m: "EU Teams users (Jun 2025)", v: "17k" }, { m: "UK H1 adds", v: "56k vs 28k" }, { m: "OC International", v: "14 countries" }]
     },
     {
         id: "sp", name: "Service Provider", cat: "Calling", color: "#10b981", tamUnit: "Numbers/trunks",
         eq: "Units × annual wholesale ARPU",
-        quantity: [{ l: "Addressable providers", v: 350 }, { l: "Countries per provider", v: 4.5 }, { l: "Units per provider-country", v: 18000 }, { l: "Outsource penetration", v: 0.35 }, { l: "Gamma win rate", v: 0.025 }],
-        price: [{ l: "Monthly hosting ARPU", v: 0.85 }, { l: "Traffic/compliance ARPU", v: 0.35 }, { l: "Annual integration", v: 2.5 }],
-        cagr: [{ l: "Provider platform growth", v: 0.03 }, { l: "International expansion", v: 0.04 }, { l: "Hyperscaler growth", v: 0.025 }, { l: "New country launches", v: 0.02 }, { l: "Voice decline drag", v: -0.025 }],
-        anchors: [{ m: "SP revenue H1", v: "£43.5m" }, { m: "SP GP H1", v: "£21.3m" }, { m: "% of Gamma Biz rev", v: "23%" }, { m: "% of Gamma Biz GP", v: "22%" }]
+        quantity: [{ l: "Addressable providers", v: 650 }, { l: "Countries per provider", v: 5.0 }, { l: "Units per provider-country", v: 16000 }, { l: "Outsource penetration", v: 0.38 }, { l: "Gamma win rate", v: 0.26 }],
+        price: [{ l: "Monthly hosting ARPU", v: 0.9 }, { l: "Traffic/compliance ARPU", v: 0.4 }, { l: "Annual integration", v: 2.8 }],
+        cagr: [{ l: "Provider platform growth", v: 0.02 }, { l: "International expansion", v: 0.02 }, { l: "Hyperscaler growth", v: 0.015 }, { l: "New country launches", v: 0.015 }, { l: "Voice decline drag", v: -0.015 }],
+        anchors: [{ m: "SP revenue H1 2025", v: "£43.5m" }, { m: "SP GP H1 2025", v: "£21.3m" }, { m: "SP revenue FY2024", v: "£76.3m" }, { m: "SP GP FY2024", v: "£36.3m" }]
     },
     {
         id: "ethernet", name: "Ethernet", cat: "Connectivity", color: "#3b82f6", tamUnit: "Circuits",
         eq: "Circuits × annual ARPU",
-        quantity: [{ l: "Addressable enterprise sites", v: 650000 }, { l: "Circuits per site", v: 1.5 }, { l: "Dedicated attach rate", v: 0.35 }, { l: "SD-WAN attach rate", v: 0.20 }, { l: "Gamma win rate", v: 0.03 }],
-        price: [{ l: "Monthly circuit ARPU", v: 185 }, { l: "Managed/SD-WAN ARPU", v: 45 }, { l: "Annual install/project", v: 250 }],
-        cagr: [{ l: "Base circuit growth", v: 0.01 }, { l: "SD-WAN uplift", v: 0.03 }, { l: "Enterprise wins", v: 0.02 }, { l: "Fibre availability", v: 0.015 }, { l: "Price-war drag", v: -0.03 }],
-        anchors: [{ m: "Ethernet GP headwind H1", v: "£1.0m" }, { m: "FY26 GP headwind", v: "£3.0m" }, { m: "Morrisons", v: "400+1,200 sites" }]
+        quantity: [{ l: "Addressable enterprise sites", v: 900000 }, { l: "Circuits per site", v: 1.6 }, { l: "Dedicated attach rate", v: 0.40 }, { l: "SD-WAN attach rate", v: 0.25 }, { l: "Gamma win rate", v: 0.12 }],
+        price: [{ l: "Monthly circuit ARPU", v: 170 }, { l: "Managed/SD-WAN ARPU", v: 35 }, { l: "Annual install/project", v: 220 }],
+        cagr: [{ l: "Base circuit growth", v: 0.005 }, { l: "SD-WAN uplift", v: 0.015 }, { l: "Enterprise wins", v: 0.01 }, { l: "Fibre availability", v: 0.01 }, { l: "Price-war drag", v: -0.03 }],
+        anchors: [{ m: "Ethernet GP headwind H1 2025", v: "£1.0m" }, { m: "FY26 GP headwind", v: "£3.0m" }, { m: "Enterprise win", v: "Morrisons 400+1,200" }, { m: "Enterprise win", v: "Utilita SD-WAN" }]
     },
     {
         id: "broadband", name: "Business Broadband", cat: "Connectivity", color: "#0ea5e9", tamUnit: "Lines",
         eq: "Lines × annual ARPU",
-        quantity: [{ l: "Addressable SME sites", v: 4500000 }, { l: "Lines per site", v: 1.1 }, { l: "Fibre adoption rate", v: 0.45 }, { l: "Backup attach rate", v: 0.08 }, { l: "Gamma share", v: 0.025 }],
-        price: [{ l: "Monthly broadband ARPU", v: 28 }, { l: "Managed/security ARPU", v: 6 }, { l: "Annual activation", v: 30 }],
-        cagr: [{ l: "FTTP availability growth", v: 0.03 }, { l: "Copper→fibre migration", v: 0.025 }, { l: "Comparison-site share", v: 0.015 }, { l: "Managed attach", v: 0.01 }, { l: "Fibre margin drag", v: -0.025 }],
-        anchors: [{ m: "H1 GP headwind (Cu→fibre)", v: "£1.5m" }, { m: "Expected cadence", v: "~£1.5m/half" }, { m: "Comparison-site", v: "BT, PXC" }]
+        quantity: [{ l: "Addressable SME sites", v: 3500000 }, { l: "Lines per site", v: 1.15 }, { l: "Fibre adoption rate", v: 0.62 }, { l: "Backup attach rate", v: 0.16 }, { l: "Gamma share", v: 0.25 }],
+        price: [{ l: "Monthly broadband ARPU", v: 24 }, { l: "Managed/security ARPU", v: 5 }, { l: "Annual activation", v: 20 }],
+        cagr: [{ l: "FTTP availability growth", v: 0.015 }, { l: "Copper→fibre migration", v: 0.015 }, { l: "Comparison-site share", v: 0.01 }, { l: "Managed attach", v: 0.005 }, { l: "Fibre margin drag", v: -0.02 }],
+        anchors: [{ m: "H1 GP headwind (Cu→fibre)", v: "£1.5m" }, { m: "Expected cadence", v: "~£1.5m/half to FY26" }, { m: "Comparison-site providers", v: "BT, PXC" }]
     },
     {
         id: "mobile", name: "Mobile / Fusion IoT", cat: "Connectivity", color: "#ec4899", tamUnit: "SIMs/endpoints",
         eq: "Endpoints × annual ARPU",
-        quantity: [{ l: "Addressable endpoints", v: 12000000 }, { l: "Devices per customer", v: 8 }, { l: "SIM penetration", v: 0.25 }, { l: "IoT management attach", v: 0.15 }, { l: "Gamma share", v: 0.004 }],
-        price: [{ l: "Monthly SIM ARPU", v: 6.5 }, { l: "IoT/analytics ARPU", v: 3.0 }, { l: "Annual activation/HW", v: 15 }],
-        cagr: [{ l: "Mobile user growth", v: 0.02 }, { l: "IoT endpoint growth", v: 0.06 }, { l: "PSTN non-voice replace", v: 0.03 }, { l: "eSIM deployment", v: 0.015 }, { l: "Price competition drag", v: -0.02 }],
-        anchors: [{ m: "Fusion IoT launch", v: "1 Jul 2025" }, { m: "Enterprise proof", v: "AA / Centrica" }, { m: "eSIM roadmap", v: "UK + DE" }]
+        quantity: [{ l: "Addressable endpoints", v: 10000000 }, { l: "Devices per customer", v: 7.5 }, { l: "SIM penetration", v: 0.40 }, { l: "IoT management attach", v: 0.22 }, { l: "Gamma share", v: 0.03 }],
+        price: [{ l: "Monthly SIM ARPU", v: 6.0 }, { l: "IoT/analytics ARPU", v: 2.5 }, { l: "Annual activation/HW", v: 12 }],
+        cagr: [{ l: "Mobile user growth", v: 0.02 }, { l: "IoT endpoint growth", v: 0.04 }, { l: "PSTN non-voice replace", v: 0.02 }, { l: "eSIM deployment", v: 0.01 }, { l: "Price competition drag", v: -0.015 }],
+        anchors: [{ m: "Fusion IoT launch", v: "1 Jul 2025" }, { m: "Enterprise proof", v: "AA / Centrica" }, { m: "eSIM roadmap", v: "UK + DE" }, { m: "Public sector mobile win", v: "Wolverhampton" }]
     },
 ];
 
