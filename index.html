@@ -48,10 +48,7 @@
             font-size: 14px;
         }
 
-        #jsx-input {
-            flex: 1;
-            max-width: 400px;
-        }
+
 
         #top-bar button {
             padding: 8px 16px;
@@ -119,13 +116,10 @@
     <div id="top-bar">
         <label for="jsx-select" style="font-weight: 500; font-size: 14px; color: #333;">Load Component:</label>
         <select id="jsx-select">
-            <option value="">-- Custom file --</option>
             <option value="truelayer-calculator-reverse-engineered.jsx">truelayer-calculator-reverse-engineered.jsx
             </option>
             <option value="gammamodel.jsx">gammamodel.jsx</option>
         </select>
-        <input type="text" id="jsx-input" placeholder="e.g. my-component.jsx" />
-        <button id="load-btn">Render</button>
         <button id="reset-btn" type="button">Reset</button>
         <input type="text" id="share-url" readonly placeholder="Shareable link will appear here" />
         <button id="copy-link-btn" type="button">Copy Link</button>
@@ -159,8 +153,6 @@
         const DEFAULT_FILE = 'truelayer-calculator-reverse-engineered.jsx';
 
         const selectEl = document.getElementById('jsx-select');
-        const inputEl = document.getElementById('jsx-input');
-        const loadBtn = document.getElementById('load-btn');
         const resetBtn = document.getElementById('reset-btn');
         const shareUrlEl = document.getElementById('share-url');
         const copyLinkBtn = document.getElementById('copy-link-btn');
@@ -285,9 +277,10 @@
         }
 
         function updateFileInputs(filename) {
-            inputEl.value = filename;
             const hasOption = Array.from(selectEl.options).some((opt) => opt.value === filename);
-            selectEl.value = hasOption ? filename : '';
+            if (hasOption) {
+                selectEl.value = filename;
+            }
         }
 
         function buildShareUrl() {
@@ -399,11 +392,6 @@
             }
         });
 
-        loadBtn.addEventListener('click', () => {
-            const filename = inputEl.value || selectEl.value;
-            if (filename) loadJSX(filename, { pushHistory: true });
-        });
-
         resetBtn.addEventListener('click', () => {
             if (!currentComponent || !currentFile) return;
             currentInitialSettings = deepClone(currentDefaultSettings);
@@ -426,12 +414,7 @@
             }
         });
 
-        inputEl.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const filename = inputEl.value;
-                if (filename) loadJSX(filename, { pushHistory: true });
-            }
-        });
+
 
         // Initialize from URL param or default
         const urlParams = new URLSearchParams(window.location.search);
