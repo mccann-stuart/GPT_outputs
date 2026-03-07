@@ -497,12 +497,23 @@
                 const jsxCode = await response.text();
 
                 // Transpile using Babel
-                const transpiled = Babel.transform(jsxCode, {
+                let transpiled = Babel.transform(jsxCode, {
                     presets: [
                         ['react', { runtime: 'automatic' }] // Use new JSX transform
                     ],
                     filename: filename
                 }).code;
+
+                // Fix relative imports for blob URL
+                const fileUrl = new URL(filename, window.location.href).href;
+                transpiled = transpiled.replace(/(import|export|from)\s+['"](\.[^'"]+)['"]/g, (match, p1, p2) => {
+                    const absUrl = new URL(p2, fileUrl).href;
+                    return `${p1} '${absUrl}'`;
+                });
+                transpiled = transpiled.replace(/import\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g, (match, p1) => {
+                    const absUrl = new URL(p1, fileUrl).href;
+                    return `import('${absUrl}')`;
+                });
 
                 // Create a module blob
                 const blob = new Blob([transpiled], { type: 'application/javascript' });
