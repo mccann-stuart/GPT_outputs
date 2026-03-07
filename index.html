@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSX Viewer</title>
+    <!-- Import map for React -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
+      }
+    }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #f4f4f9; 
+        }
+        #top-bar { 
+            padding: 12px 20px; 
+            background: #fff; 
+            border-bottom: 1px solid #e0e0e0; 
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        #top-bar select, #top-bar input {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        #top-bar input {
+            flex: 1;
+            max-width: 400px;
+        }
+        #top-bar button {
+            padding: 8px 16px;
+            background: #6c3dff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #top-bar button:hover {
+            background: #5a2bd1;
+        }
+        #root { 
+            min-height: calc(100vh - 61px);
+        }
+        .error-message {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 16px;
+            margin: 20px;
+            border-radius: 8px;
+            border: 1px solid #ffcdd2;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .loading {
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <label for="jsx-select" style="font-weight: 500; font-size: 14px; color: #333;">Load Component:</label>
+        <select id="jsx-select">
+            <option value="">-- Custom file --</option>
+            <option value="truelayer-calculator-reverse-engineered.jsx">truelayer-calculator-reverse-engineered.jsx</option>
+        </select>
+        <input type="text" id="jsx-input" placeholder="e.g. my-component.jsx" />
+        <button id="load-btn">Render</button>
+    </div>
+    <div id="root"></div>
+
+    <script type="module">
+        import React from 'react';
+        import { createRoot } from 'react-dom/client';
+
+        window.React = React; // Expose React globally just in case components expect it
+
+        const rootElement = document.getElementById('root');
+        const root = createRoot(rootElement);
+
+        async function loadJSX(filename) {
+            try {
+                root.render(React.createElement('div', { className: 'loading' }, `Loading ${filename}...`));
+                
+                // Fetch the JSX file
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch ${filename}: ${response.status} ${response.statusText}`);
+                }
+                const jsxCode = await response.text();
+
+                // Transpile using Babel
+                const transpiled = Babel.transform(jsxCode, {
+                    presets: [
+                        ['react', { runtime: 'automatic' }] // Use new JSX transform
+                    ],
+                    filename: filename
+                }).code;
+
+                // Create a module blob
+                const blob = new Blob([transpiled], { type: 'application/javascript' });
+                const blobUrl = URL.createObjectURL(blob);
+
+                // Dynamically import the transpiled module
+                const module = await import(blobUrl);
+                
+                // Cleanup blob URL
+                URL.revokeObjectURL(blobUrl);
+
+                // Render the default export
+                const Component = module.default;
+                if (!Component) {
+                    throw new Error(`No default export found in ${filename}`);
+                }
+
+                root.render(React.createElement(Component));
+
+                // Update URL parameter without recharging
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('file', filename);
+                window.history.pushState({}, '', newUrl);
+
+            } catch (err) {
+                console.error(err);
+                root.render(
+                    React.createElement('div', { className: 'error-message' }, 
+                        `Error loading ${filename}:\n\n${err.message}\n\nCheck the browser console for more details.`
+                    )
+                );
+            }
+        }
+
+        const selectEl = document.getElementById('jsx-select');
+        const inputEl = document.getElementById('jsx-input');
+        const loadBtn = document.getElementById('load-btn');
+
+        selectEl.addEventListener('change', (e) => {
+            if (e.target.value) {
+                inputEl.value = e.target.value;
+                loadJSX(e.target.value);
+            }
+        });
+
+        loadBtn.addEventListener('click', () => {
+            const filename = inputEl.value || selectEl.value;
+            if (filename) loadJSX(filename);
+        });
+
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const filename = inputEl.value;
+                if (filename) loadJSX(filename);
+            }
+        });
+
+        // Initialize from URL param or default
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileParam = urlParams.get('file');
+        
+        if (fileParam) {
+            inputEl.value = fileParam;
+            // Select the option if it matches
+            Array.from(selectEl.options).forEach(opt => {
+                if (opt.value === fileParam) selectEl.value = fileParam;
+            });
+            loadJSX(fileParam);
+        } else {
+            // Default to the known file if no URL param
+            const defaultFile = 'truelayer-calculator-reverse-engineered.jsx';
+            inputEl.value = defaultFile;
+            selectEl.value = defaultFile;
+            loadJSX(defaultFile);
+        }
+    </script>
+</body>
+</html>
