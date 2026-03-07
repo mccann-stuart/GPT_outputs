@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,40 +11,46 @@
       "imports": {
         "react": "https://esm.sh/react@18.2.0",
         "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "recharts": "https://esm.sh/recharts?external=react,react-dom"
       }
     }
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: #f4f4f9; 
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f4f9;
         }
-        #top-bar { 
-            padding: 12px 20px; 
-            background: #fff; 
-            border-bottom: 1px solid #e0e0e0; 
-            display: flex; 
-            gap: 12px; 
-            align-items: center; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+        #top-bar {
+            padding: 12px 20px;
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             position: sticky;
             top: 0;
             z-index: 1000;
         }
-        #top-bar select, #top-bar input {
+
+        #top-bar select,
+        #top-bar input {
             padding: 8px 12px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 14px;
         }
+
         #top-bar input {
             flex: 1;
             max-width: 400px;
         }
+
         #top-bar button {
             padding: 8px 16px;
             background: #6c3dff;
@@ -55,12 +62,15 @@
             cursor: pointer;
             transition: background 0.2s;
         }
+
         #top-bar button:hover {
             background: #5a2bd1;
         }
-        #root { 
+
+        #root {
             min-height: calc(100vh - 61px);
         }
+
         .error-message {
             color: #d32f2f;
             background: #ffebee;
@@ -71,6 +81,7 @@
             font-family: monospace;
             white-space: pre-wrap;
         }
+
         .loading {
             padding: 20px;
             color: #666;
@@ -78,12 +89,14 @@
         }
     </style>
 </head>
+
 <body>
     <div id="top-bar">
         <label for="jsx-select" style="font-weight: 500; font-size: 14px; color: #333;">Load Component:</label>
         <select id="jsx-select">
             <option value="">-- Custom file --</option>
-            <option value="truelayer-calculator-reverse-engineered.jsx">truelayer-calculator-reverse-engineered.jsx</option>
+            <option value="truelayer-calculator-reverse-engineered.jsx">truelayer-calculator-reverse-engineered.jsx
+            </option>
             <option value="gammamodel.jsx">gammamodel.jsx</option>
         </select>
         <input type="text" id="jsx-input" placeholder="e.g. my-component.jsx" />
@@ -97,13 +110,27 @@
 
         window.React = React; // Expose React globally just in case components expect it
 
+        window.addEventListener('error', (e) => {
+            const rootEl = document.getElementById('root');
+            if (rootEl) {
+                rootEl.innerHTML = `<div class="error-message" style="margin:20px;">Uncaught Error: ${e.message}<br/>Check browser console for more details.</div>`;
+            }
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            const rootEl = document.getElementById('root');
+            if (rootEl) {
+                const msg = e.reason && e.reason.message ? e.reason.message : e.reason;
+                rootEl.innerHTML = `<div class="error-message" style="margin:20px;">Unhandled Promise Rejection: ${msg}<br/>Check browser console for more details.</div>`;
+            }
+        });
+
         const rootElement = document.getElementById('root');
         const root = createRoot(rootElement);
 
         async function loadJSX(filename) {
             try {
                 root.render(React.createElement('div', { className: 'loading' }, `Loading ${filename}...`));
-                
+
                 // Fetch the JSX file
                 const response = await fetch(filename);
                 if (!response.ok) {
@@ -125,7 +152,7 @@
 
                 // Dynamically import the transpiled module
                 const module = await import(blobUrl);
-                
+
                 // Cleanup blob URL
                 URL.revokeObjectURL(blobUrl);
 
@@ -145,7 +172,7 @@
             } catch (err) {
                 console.error(err);
                 root.render(
-                    React.createElement('div', { className: 'error-message' }, 
+                    React.createElement('div', { className: 'error-message' },
                         `Error loading ${filename}:\n\n${err.message}\n\nCheck the browser console for more details.`
                     )
                 );
@@ -178,7 +205,7 @@
         // Initialize from URL param or default
         const urlParams = new URLSearchParams(window.location.search);
         const fileParam = urlParams.get('file');
-        
+
         if (fileParam) {
             inputEl.value = fileParam;
             // Select the option if it matches
@@ -195,4 +222,5 @@
         }
     </script>
 </body>
+
 </html>
