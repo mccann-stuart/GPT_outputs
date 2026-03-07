@@ -126,7 +126,7 @@ export const fP = n => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(1)}%`;
 export const fM = n => `${(n * 100).toFixed(1)}%`;
 export const cagr = (s, e, n) => s > 0 && e > 0 && n > 0 ? (Math.pow(e / s, 1 / n) - 1) : 0;
 
-export function calcTAM(p) { const u = p.quantity.reduce((a, q) => a * q.v, 1); const ar = (p.price[0].v + p.price[1].v) * 12 + p.price[2].v; return { u, ar, tam: (u * ar) / 1e6 }; }
+export function calcTAM(p) { const u = p.quantity.reduce((a, q) => a * q.v, 1); const ar = (p.price[0].v + p.price[1].v) * 12 + p.price[2].v; const som = (u * ar) / 1e6; const gammaShare = p.quantity[p.quantity.length - 1].v; const tam = gammaShare > 0 ? som / gammaShare : 0; return { u, ar, tam, som }; }
 export function calcCAGR(p) { return p.cagr.reduce((s, c) => s + c.v, 0); }
 
 export const DEFAULT_SETTINGS = {

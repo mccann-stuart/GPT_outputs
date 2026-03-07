@@ -63,7 +63,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
     const uC = useCallback((pi, ci, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], cagr: [...n[pi].cagr] }; x.cagr[ci] = { ...x.cagr[ci], v }; n[pi] = x; return n; }), []);
 
     const comp = useMemo(() => prods.map(p => { const r = calcTAM(p); const c = calcCAGR(p); return { ...r, cagr: c }; }), [prods]);
-    const totalModelTAM = comp.reduce((s, c) => s + c.tam, 0);
+    const totalModelSOM = comp.reduce((s, c) => s + c.som, 0);
 
     // Build combined actuals + projections P&L
     const plData = useMemo(() => {
@@ -82,7 +82,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
         // Projections 2026-2035
         PROJ_YEARS.slice(1).forEach(y => {
             let totRev = 0;
-            prods.forEach((p, i) => { const t = y - 2025; totRev += comp[i].tam * Math.pow(1 + comp[i].cagr, t); });
+            prods.forEach((p, i) => { const t = y - 2025; totRev += comp[i].som * Math.pow(1 + comp[i].cagr, t); });
             const gp = totRev * gpM;
             const opex = totRev * opxR;
             const ebitda = gp - opex - centralCost;
@@ -97,7 +97,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
 
     // Product-level projections
     const prodProj = useMemo(() => prods.map((p, i) => {
-        return PROJ_YEARS.map(y => ({ year: y, tam: comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025) }));
+        return PROJ_YEARS.map(y => ({ year: y, som: comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025) }));
     }), [prods, comp]);
 
     // Stacked revenue data for chart
@@ -105,7 +105,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
         return PROJ_YEARS.map(y => {
             const row = { year: y };
             let tot = 0;
-            prods.forEach((p, i) => { const t = y - 2025; const r = comp[i].tam * Math.pow(1 + comp[i].cagr, t); row[p.id] = r; tot += r; });
+            prods.forEach((p, i) => { const t = y - 2025; const r = comp[i].som * Math.pow(1 + comp[i].cagr, t); row[p.id] = r; tot += r; });
             row.total = tot;
             return row;
         });
@@ -347,10 +347,16 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     <h2 style={{ margin: "2px 0", fontSize: 16, fontWeight: 700, color: p.color }}>{p.name}</h2>
                                     <div style={{ fontSize: 9, color: t3, fontFamily: "'JetBrains Mono',monospace" }}>{p.eq}</div>
                                 </div>
-                                <div style={{ textAlign: "right" }}>
-                                    <div style={{ fontSize: 9, color: t2 }}>Model TAM</div>
-                                    <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: p.color }}>£{c.tam.toFixed(0)}m</div>
-                                    <div style={{ fontSize: 11, color: c.cagr >= 0 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>CAGR {fP(c.cagr)}</div>
+                                <div style={{ textAlign: "right", display: "flex", gap: 24, alignItems: "flex-end" }}>
+                                    <div style={{ textAlign: "right" }}>
+                                        <div style={{ fontSize: 9, color: t2 }}>Model TAM</div>
+                                        <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: t2, marginBottom: 1 }}>£{c.tam.toFixed(0)}m</div>
+                                    </div>
+                                    <div style={{ textAlign: "right" }}>
+                                        <div style={{ fontSize: 9, color: t2 }}>Model SOM</div>
+                                        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: p.color }}>£{c.som.toFixed(0)}m</div>
+                                        <div style={{ fontSize: 11, color: c.cagr >= 0 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>CAGR {fP(c.cagr)}</div>
+                                    </div>
                                 </div>
                             </div>
                         </Box>
@@ -398,14 +404,14 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                 <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</span>
                             </div>
                             <div style={{ display: "flex", gap: 14, marginTop: 4, fontSize: 10, color: t2 }}>
-                                <span>Yr3: <b style={{ color: t1 }}>£{(c.tam * Math.pow(1 + c.cagr, 3)).toFixed(0)}m</b></span>
-                                <span>Yr5: <b style={{ color: t1 }}>£{(c.tam * Math.pow(1 + c.cagr, 5)).toFixed(0)}m</b></span>
-                                <span>Yr10: <b style={{ color: t1 }}>£{(c.tam * Math.pow(1 + c.cagr, 10)).toFixed(0)}m</b></span>
+                                <span>Yr3: <b style={{ color: t1 }}>£{(c.som * Math.pow(1 + c.cagr, 3)).toFixed(0)}m</b></span>
+                                <span>Yr5: <b style={{ color: t1 }}>£{(c.som * Math.pow(1 + c.cagr, 5)).toFixed(0)}m</b></span>
+                                <span>Yr10: <b style={{ color: t1 }}>£{(c.som * Math.pow(1 + c.cagr, 10)).toFixed(0)}m</b></span>
                             </div>
                         </Box>
 
                         <Box>
-                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>TAM Projection</div>
+                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>SOM Projection</div>
                             <ResponsiveContainer width="100%" height={130}>
                                 <AreaChart data={prodProj[sel]} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
                                     <defs><linearGradient id={`g${sel}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={p.color} stopOpacity={0.4} /><stop offset="95%" stopColor={p.color} stopOpacity={0.05} /></linearGradient></defs>
@@ -413,7 +419,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     <XAxis dataKey="year" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
                                     <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
                                     <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`£${v.toFixed(0)}m`]} labelFormatter={l => `FY${l}E`} />
-                                    <Area type="monotone" dataKey="tam" stroke={p.color} strokeWidth={2.5} fill={`url(#g${sel})`} />
+                                    <Area type="monotone" dataKey="som" stroke={p.color} strokeWidth={2.5} fill={`url(#g${sel})`} />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </Box>
@@ -436,7 +442,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
             {/* ═══ TAB 2: PROJECTIONS ═══ */}
             {tab === 2 && (<>
                 <Box>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Projection Assumptions (applied to model TAM)</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Projection Assumptions (applied to model SOM)</div>
                     <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
                         {[{ l: "Blended GP Margin", v: gpM, s: setGpM, mn: 0.4, mx: 0.65 }, { l: "OpEx % Revenue", v: opxR, s: setOpxR, mn: 0.2, mx: 0.45 }, { l: "Tax Rate", v: taxR, s: setTaxR, mn: 0.2, mx: 0.35 }, { l: "Central Costs (£m)", v: centralCost, s: setCentralCost, mn: 10, mx: 40, abs: true }].map(x => (
                             <div key={x.l} style={{ flex: 1, minWidth: 120 }}>
@@ -472,10 +478,10 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
 
                 {/* Model summary table */}
                 <Box>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Product TAM Summary — Model vs Actual</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Product SOM Summary — Model vs Actual</div>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
                         <thead><tr style={{ borderBottom: `2px solid ${bdr}` }}>
-                            {["Product", "TAM £m", "CAGR", "FY28E", "FY30E", "FY35E", "Category"].map(h => (
+                            {["Product", "SOM £m", "CAGR", "FY28E", "FY30E", "FY35E", "Category"].map(h => (
                                 <th key={h} style={{ textAlign: h === "Product" || h === "Category" ? "left" : "right", padding: "4px 5px", color: t2, fontWeight: 500, fontSize: 9 }}>{h}</th>
                             ))}
                         </tr></thead>
@@ -484,29 +490,29 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                 const c = comp[i]; return (
                                     <tr key={p.id} style={{ borderBottom: `1px solid ${bdr}15` }}>
                                         <td style={{ padding: "3px 5px" }}><span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 2, background: p.color, marginRight: 4, verticalAlign: "middle" }} />{p.name}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{c.tam.toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{c.som.toFixed(0)}</td>
                                         <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 3)).toFixed(0)}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 5)).toFixed(0)}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 10)).toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 3)).toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 5)).toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 10)).toFixed(0)}</td>
                                         <td style={{ padding: "3px 5px", color: CAT_C[p.cat], fontSize: 9 }}>{p.cat}</td>
                                     </tr>);
                             })}
                             <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
-                                <td style={{ padding: "4px 5px" }}>Total Model TAM</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalModelTAM.toFixed(0)}</td>
+                                <td style={{ padding: "4px 5px" }}>Total Model SOM</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalModelSOM.toFixed(0)}</td>
                                 <td />
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 3), 0).toFixed(0)}</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 5), 0).toFixed(0)}</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 10), 0).toFixed(0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 3), 0).toFixed(0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 5), 0).toFixed(0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 10), 0).toFixed(0)}</td>
                                 <td />
                             </tr>
                         </tbody>
                     </table>
                     <div style={{ fontSize: 10, color: t2, marginTop: 6, display: "flex", gap: 16 }}>
                         <span>FY2024 Actual Revenue: <b style={{ color: "#f59e0b" }}>£579.4m</b></span>
-                        <span>Model TAM (base year): <b style={{ color: "#3b82f6" }}>£{totalModelTAM.toFixed(0)}m</b></span>
-                        <span>Calibration ratio: <b style={{ color: t1 }}>{(579.4 / totalModelTAM).toFixed(2)}x</b></span>
+                        <span>Model SOM (base year): <b style={{ color: "#3b82f6" }}>£{totalModelSOM.toFixed(0)}m</b></span>
+                        <span>Calibration ratio: <b style={{ color: t1 }}>{(579.4 / totalModelSOM).toFixed(2)}x</b></span>
                     </div>
                 </Box>
 
@@ -525,7 +531,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                         <td style={{ padding: "2px 5px", fontFamily: "'IBM Plex Sans',sans-serif", fontSize: 10, color: t2 }}>
                                             <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: 1, background: pr.color, marginRight: 3, verticalAlign: "middle" }} />{pr.name}
                                         </td>
-                                        {PROJ_YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{(comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025)).toFixed(0)}</td>)}
+                                        {PROJ_YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{(comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025)).toFixed(0)}</td>)}
                                     </tr>
                                 ))}
                                 {[
@@ -536,7 +542,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     { k: "pat", l: "Net Income", b: true },
                                 ].map((r, ri) => {
                                     const getVal = (y) => {
-                                        let tot = 0; prods.forEach((p, i) => { tot += comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025); });
+                                        let tot = 0; prods.forEach((p, i) => { tot += comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025); });
                                         const gp = tot * gpM; const ebitda = gp - tot * opxR - centralCost; const pbt2 = ebitda - tot * 0.04;
                                         return { rev: tot, gp, adjEBITDA: ebitda, pbt: pbt2, pat: pbt2 - Math.max(0, pbt2 * taxR) }[r.k];
                                     };
@@ -554,9 +560,9 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 {/* CAGR summary */}
                 <div style={{ display: "flex", gap: 10 }}>
                     {[{ l: "3-Year (→FY2028)", n: 3 }, { l: "5-Year (→FY2030)", n: 5 }, { l: "10-Year (→FY2035)", n: 10 }].map(h => {
-                        const revBase = totalModelTAM; const revEnd = comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, h.n), 0);
+                        const revBase = totalModelSOM; const revEnd = comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, h.n), 0);
                         const rc = cagr(revBase, revEnd, h.n);
-                        const getEbitda = (y) => { let tot = 0; prods.forEach((p, i) => { tot += comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025); }); return tot * gpM - tot * opxR - centralCost; };
+                        const getEbitda = (y) => { let tot = 0; prods.forEach((p, i) => { tot += comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025); }); return tot * gpM - tot * opxR - centralCost; };
                         const eb = getEbitda(2025); const ee = getEbitda(2025 + h.n); const ec = cagr(eb, ee, h.n);
                         return (<Box key={h.l} style={{ flex: 1 }}>
                             <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: "#3b82f6" }}>{h.l}</div>
