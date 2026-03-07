@@ -30,7 +30,7 @@ const NI = ({ value, onChange, step, w }) => (
         style={{ width: w || 80, padding: "3px 5px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", background: "#1e293b", border: "1px solid #334155", borderRadius: 4, color: "#fbbf24", textAlign: "right", outline: "none" }} />
 );
 
-const TABS = ["Actuals & KPIs", "Product Drivers", "Projections & P&L"];
+const TABS = ["Market Model, by Product Line", "Projections + P&L", "Actuals & KPIs"];
 
 export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSettingsChange }) {
     const resolvedInitialSettings = useMemo(
@@ -130,8 +130,8 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 ))}
             </div>
 
-            {/* ═══ TAB 0: ACTUALS ═══ */}
-            {tab === 0 && (<>
+            {/* ═══ TAB 2: ACTUALS ═══ */}
+            {tab === 2 && (<>
                 {/* Group P&L headline KPIs */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                     {[
@@ -320,8 +320,8 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 </Box>
             </>)}
 
-            {/* ═══ TAB 1: PRODUCT DRIVERS ═══ */}
-            {tab === 1 && (() => {
+            {/* ═══ TAB 0: PRODUCT DRIVERS ═══ */}
+            {tab === 0 && (() => {
                 const p = prods[sel], c = comp[sel];
                 return (<div style={{ display: "flex", gap: 10 }}>
                     <div style={{ width: 175, flexShrink: 0 }}>
@@ -435,8 +435,8 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 </div>);
             })()}
 
-            {/* ═══ TAB 2: PROJECTIONS ═══ */}
-            {tab === 2 && (<>
+            {/* ═══ TAB 1: PROJECTIONS ═══ */}
+            {tab === 1 && (<>
                 <Box>
                     <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Projection Assumptions (applied to model SOM)</div>
                     <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
