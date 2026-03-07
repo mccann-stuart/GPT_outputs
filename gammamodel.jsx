@@ -245,10 +245,12 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
         });
     }, [products, opex]);
 
+    const dataByYear = useMemo(() => Object.fromEntries(yearlyData.map(d => [d.year, d])), [yearlyData]);
+
     const baseYear = yearlyData[0];
-    const y2030 = yearlyData.find(d => d.year === 2030);
-    const y2035 = yearlyData.find(d => d.year === 2035);
-    const y2040 = yearlyData.find(d => d.year === 2040);
+    const y2030 = dataByYear[2030];
+    const y2035 = dataByYear[2035];
+    const y2040 = dataByYear[2040];
     const y2045 = yearlyData[yearlyData.length - 1];
 
     const revCAGR2030 = cagr(baseYear.totalRev, y2030.totalRev, 5);
@@ -412,7 +414,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                 </thead>
                                 <tbody>
                                     {Object.entries(products).map(([key, p]) => {
-                                        const vals = [2025, 2028, 2030, 2035, 2040, 2045].map(y => yearlyData.find(d => d.year === y)?.[key] || 0);
+                                        const vals = [2025, 2028, 2030, 2035, 2040, 2045].map(y => dataByYear[y]?.[key] || 0);
                                         const c30 = cagr(vals[0], vals[2], 5);
                                         const c40 = cagr(vals[0], vals[4], 15);
                                         return (
@@ -434,8 +436,8 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     <tr style={{ borderTop: `2px solid ${border}`, fontWeight: 700 }}>
                                         <td style={{ padding: "6px 8px" }}>Total Group</td>
                                         {[2025, 2028, 2030, 2035, 2040, 2045].map(y => {
-                                            const d = yearlyData.find(r => r.year === y);
-                                            return <td key={y} style={{ textAlign: "right", padding: "6px 8px", fontFamily: "'JetBrains Mono', monospace" }}>{d.totalRev.toFixed(0)}</td>;
+                                            const d = dataByYear[y];
+                                            return <td key={y} style={{ textAlign: "right", padding: "6px 8px", fontFamily: "'JetBrains Mono', monospace" }}>{d?.totalRev.toFixed(0) || 0}</td>;
                                         })}
                                         <td style={{ textAlign: "right", padding: "6px 8px", fontFamily: "'JetBrains Mono', monospace", color: revCAGR2030 >= 0 ? "#22c55e" : "#ef4444" }}>{fmtPct(revCAGR2030)}</td>
                                         <td style={{ textAlign: "right", padding: "6px 8px", fontFamily: "'JetBrains Mono', monospace", color: revCAGR2040 >= 0 ? "#22c55e" : "#ef4444" }}>{fmtPct(revCAGR2040)}</td>
@@ -598,20 +600,20 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     ].map((row, ri) => {
                                         const years = [2025, 2027, 2028, 2030, 2032, 2035, 2038, 2040, 2043, 2045];
                                         return (
-                                            <tr key={ri} style={{
-                                                borderBottom: `1px solid ${border}22`,
-                                                background: row.highlight ? `${accent}08` : "transparent"
-                                            }}>
-                                                <td style={{
-                                                    padding: "5px 8px", paddingLeft: row.indent ? 24 : 8,
-                                                    fontFamily: "'IBM Plex Sans', sans-serif",
-                                                    fontWeight: row.bold ? 700 : 400,
-                                                    color: row.indent ? textSecondary : textPrimary,
-                                                    fontSize: row.indent ? 10 : 11
-                                                }}>{row.label.trim()}</td>
-                                                {years.map(y => {
-                                                    const d = yearlyData.find(r => r.year === y);
-                                                    const val = d[row.key] || 0;
+                                                <tr key={ri} style={{
+                                                    borderBottom: `1px solid ${border}22`,
+                                                    background: row.highlight ? `${accent}08` : "transparent"
+                                                }}>
+                                                    <td style={{
+                                                        padding: "5px 8px", paddingLeft: row.indent ? 24 : 8,
+                                                        fontFamily: "'IBM Plex Sans', sans-serif",
+                                                        fontWeight: row.bold ? 700 : 400,
+                                                        color: row.indent ? textSecondary : textPrimary,
+                                                        fontSize: row.indent ? 10 : 11
+                                                    }}>{row.label.trim()}</td>
+                                                    {years.map(y => {
+                                                        const d = dataByYear[y];
+                                                        const val = d?.[row.key] || 0;
                                                     const formattedVal = row.isPct ?
                                                         `${(val * 100).toFixed(1)}%` :
                                                         (val < 0 ? `(${Math.abs(val).toFixed(0)})` : (row.negative && val > 0 ? `(${val.toFixed(0)})` : val.toFixed(0)));
@@ -624,9 +626,9 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                                             {formattedVal}
                                                         </td>
                                                     );
-                                                })}
-                                            </tr>
-                                        );
+                                                    })}
+                                                </tr>
+                                            );
                                     })}
                                 </tbody>
                             </table>
