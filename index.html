@@ -12,7 +12,7 @@
         "react": "https://esm.sh/react@18.2.0",
         "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "recharts": "https://esm.sh/recharts"
+        "recharts": "https://esm.sh/recharts?external=react,react-dom"
       }
     }
     </script>
@@ -109,6 +109,20 @@
         import { createRoot } from 'react-dom/client';
 
         window.React = React; // Expose React globally just in case components expect it
+
+        window.addEventListener('error', (e) => {
+            const rootEl = document.getElementById('root');
+            if (rootEl) {
+                rootEl.innerHTML = `<div class="error-message" style="margin:20px;">Uncaught Error: ${e.message}<br/>Check browser console for more details.</div>`;
+            }
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            const rootEl = document.getElementById('root');
+            if (rootEl) {
+                const msg = e.reason && e.reason.message ? e.reason.message : e.reason;
+                rootEl.innerHTML = `<div class="error-message" style="margin:20px;">Unhandled Promise Rejection: ${msg}<br/>Check browser console for more details.</div>`;
+            }
+        });
 
         const rootElement = document.getElementById('root');
         const root = createRoot(rootElement);
