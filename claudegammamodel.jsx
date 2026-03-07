@@ -167,8 +167,8 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     { l: "Gross Profit", k: [247.7, 267.2, 300.3, 172.0, 344.0], b: true },
                                     { l: "Gross Margin", k: [0.511, 0.512, 0.518, 0.543, 0.543], pct: true },
                                     { l: "Operating Expenses", k: [null, 200.2, 210.0, 127.6, 255.2], neg: true },
-                                    { l: "  Exceptional Items", k: [null, 16.0, 0, 7.3, 7.3], indent: true },
-                                    { l: "Profit from Operations", k: [null, 67.0, 90.3, 44.4, 88.8] },
+                                    { l: "  Exceptional items (separately disclosed)", k: [null, 16.0, 0, 7.3, 14.6], indent: true },
+                                    { l: "Operating profit (pre-exceptional)", k: [null, 67.0, 90.3, 44.4, 88.8] },
                                     { l: "Net Finance", k: [null, 4.5, 5.3, -0.9, -1.8] },
                                     { l: "Profit Before Tax", k: [null, 71.5, 95.6, 43.5, 87.0] },
                                     { l: "Tax", k: [null, 17.8, 25.8, 11.1, 22.2], neg: true },
@@ -397,7 +397,10 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                             </div>
                             <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <span style={{ fontSize: 12, fontWeight: 600 }}>Model CAGR</span>
-                                <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    {(c.cagr > 0.25 || c.cagr < -0.15) && <span style={{ fontSize: 9, color: "#f59e0b", padding: "2px 4px", background: "#f59e0b20", borderRadius: 4, fontWeight: 600 }}>⚠️ Unrealistic</span>}
+                                    <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</span>
+                                </div>
                             </div>
                             <div style={{ display: "flex", gap: 14, marginTop: 4, fontSize: 10, color: t2 }}>
                                 <span>Yr3: <b style={{ color: t1 }}>£{(c.som * Math.pow(1 + c.cagr, 3)).toFixed(0)}m</b></span>
