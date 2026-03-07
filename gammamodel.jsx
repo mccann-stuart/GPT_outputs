@@ -108,17 +108,7 @@ function isPlainObject(value) {
 }
 
 function deepClone(value) {
-    if (Array.isArray(value)) {
-        return value.map(deepClone);
-    }
-    if (isPlainObject(value)) {
-        const copy = {};
-        Object.keys(value).forEach((key) => {
-            copy[key] = deepClone(value[key]);
-        });
-        return copy;
-    }
-    return value;
+    return structuredClone(value);
 }
 
 function deepMerge(defaultValue, overrideValue) {
