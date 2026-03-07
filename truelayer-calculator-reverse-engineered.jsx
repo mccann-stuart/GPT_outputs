@@ -58,6 +58,26 @@ const CARD_MIX = [
   { method: "Digital Wallets / Other", share: 0.15, pctFee: 0.035, fixedFee: 0.40 },
 ];
 
+export const DEFAULT_SETTINGS = {
+  monthlyPayments: 10000,
+  avgAmount: 50,
+  pbbShare: 0.10,
+};
+
+function resolveInitialSettings(input = {}) {
+  const monthlyPayments = Number.isFinite(Number(input.monthlyPayments))
+    ? Number(input.monthlyPayments)
+    : DEFAULT_SETTINGS.monthlyPayments;
+  const avgAmount = Number.isFinite(Number(input.avgAmount))
+    ? Number(input.avgAmount)
+    : DEFAULT_SETTINGS.avgAmount;
+  const pbbShare = Number.isFinite(Number(input.pbbShare))
+    ? Number(input.pbbShare)
+    : DEFAULT_SETTINGS.pbbShare;
+
+  return { monthlyPayments, avgAmount, pbbShare };
+}
+
 function calculateSavings(monthlyPayments, avgAmount, pbbShare) {
   const annualPbbTxns = monthlyPayments * 12 * pbbShare;
   const annualNonPbbTxns = monthlyPayments * 12 * (1 - pbbShare);
@@ -180,16 +200,30 @@ function SliderInput({ label, value, onChange, min, max, step, format }) {
 }
 
 // --- Main calculator ---
-export default function TrueLayerCalculator() {
-  const [monthlyPayments, setMonthlyPayments] = useState(10000);
-  const [avgAmount, setAvgAmount] = useState(50);
-  const [pbbShare, setPbbShare] = useState(0.10);
+export default function TrueLayerCalculator({ initialSettings = DEFAULT_SETTINGS, onSettingsChange }) {
+  const resolvedInitialSettings = useMemo(
+    () => resolveInitialSettings(initialSettings),
+    [initialSettings]
+  );
+  const [monthlyPayments, setMonthlyPayments] = useState(resolvedInitialSettings.monthlyPayments);
+  const [avgAmount, setAvgAmount] = useState(resolvedInitialSettings.avgAmount);
+  const [pbbShare, setPbbShare] = useState(resolvedInitialSettings.pbbShare);
   const [showLogic, setShowLogic] = useState(false);
 
   const result = useMemo(
     () => calculateSavings(monthlyPayments, avgAmount, pbbShare),
     [monthlyPayments, avgAmount, pbbShare]
   );
+
+  useEffect(() => {
+    if (typeof onSettingsChange === "function") {
+      onSettingsChange({
+        monthlyPayments,
+        avgAmount,
+        pbbShare,
+      });
+    }
+  }, [monthlyPayments, avgAmount, pbbShare, onSettingsChange]);
 
   const pbbShareOptions = [
     { value: 0.05, label: "5%" },

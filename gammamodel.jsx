@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ComposedChart } from "recharts";
 
 // --- S-Curve / Logistic function ---
@@ -98,6 +98,44 @@ const OPEX_ASSUMPTIONS = {
     taxRate: 0.25
 };
 
+export const DEFAULT_SETTINGS = {
+    products: DEFAULT_PRODUCTS,
+    opex: OPEX_ASSUMPTIONS
+};
+
+function isPlainObject(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepClone(value) {
+    if (Array.isArray(value)) {
+        return value.map(deepClone);
+    }
+    if (isPlainObject(value)) {
+        const copy = {};
+        Object.keys(value).forEach((key) => {
+            copy[key] = deepClone(value[key]);
+        });
+        return copy;
+    }
+    return value;
+}
+
+function deepMerge(defaultValue, overrideValue) {
+    if (overrideValue === undefined) {
+        return deepClone(defaultValue);
+    }
+    if (isPlainObject(defaultValue) && isPlainObject(overrideValue)) {
+        const merged = {};
+        const keys = new Set([...Object.keys(defaultValue), ...Object.keys(overrideValue)]);
+        keys.forEach((key) => {
+            merged[key] = deepMerge(defaultValue[key], overrideValue[key]);
+        });
+        return merged;
+    }
+    return deepClone(overrideValue);
+}
+
 function computeRevMultiplier(product, year) {
     const t = year;
     const p = product.params;
@@ -147,10 +185,14 @@ const SliderParam = ({ label, value, min, max, step, onChange, unit = "" }) => (
     </div>
 );
 
-export default function GammaModel() {
+export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSettingsChange }) {
+    const resolvedInitialSettings = useMemo(
+        () => deepMerge(DEFAULT_SETTINGS, initialSettings),
+        [initialSettings]
+    );
     const [activeTab, setActiveTab] = useState(0);
-    const [products, setProducts] = useState(DEFAULT_PRODUCTS);
-    const [opex, setOpex] = useState(OPEX_ASSUMPTIONS);
+    const [products, setProducts] = useState(() => deepClone(resolvedInitialSettings.products));
+    const [opex, setOpex] = useState(() => deepClone(resolvedInitialSettings.opex));
     const [selectedProduct, setSelectedProduct] = useState("ucaas");
 
     const updateParam = useCallback((key, param, val) => {
@@ -213,6 +255,15 @@ export default function GammaModel() {
     const revCAGR2040 = cagr(baseYear.totalRev, y2040.totalRev, 15);
     const niCAGR2030 = baseYear.netIncome > 0 && y2030.netIncome > 0 ? cagr(baseYear.netIncome, y2030.netIncome, 5) : null;
     const niCAGR2040 = baseYear.netIncome > 0 && y2040.netIncome > 0 ? cagr(baseYear.netIncome, y2040.netIncome, 15) : null;
+
+    useEffect(() => {
+        if (typeof onSettingsChange === "function") {
+            onSettingsChange({
+                products: deepClone(products),
+                opex: deepClone(opex)
+            });
+        }
+    }, [products, opex, onSettingsChange]);
 
     // Styles
     const bg = "#0c1222";

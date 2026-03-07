@@ -31,6 +31,7 @@
             background: #fff;
             border-bottom: 1px solid #e0e0e0;
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
             align-items: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -47,7 +48,7 @@
             font-size: 14px;
         }
 
-        #top-bar input {
+        #jsx-input {
             flex: 1;
             max-width: 400px;
         }
@@ -66,6 +67,29 @@
 
         #top-bar button:hover {
             background: #5a2bd1;
+        }
+
+        #reset-btn {
+            background: #5f6575;
+        }
+
+        #reset-btn:hover {
+            background: #4f5566;
+        }
+
+        #copy-link-btn {
+            background: #137c50;
+        }
+
+        #copy-link-btn:hover {
+            background: #0f6944;
+        }
+
+        #share-url {
+            flex: 1 1 320px;
+            min-width: 220px;
+            background: #fafafa;
+            color: #555;
         }
 
         #root {
@@ -102,6 +126,9 @@
         </select>
         <input type="text" id="jsx-input" placeholder="e.g. my-component.jsx" />
         <button id="load-btn">Render</button>
+        <button id="reset-btn" type="button">Reset</button>
+        <input type="text" id="share-url" readonly placeholder="Shareable link will appear here" />
+        <button id="copy-link-btn" type="button">Copy Link</button>
     </div>
     <div id="root"></div>
 
@@ -128,7 +155,187 @@
         const rootElement = document.getElementById('root');
         const root = createRoot(rootElement);
 
-        async function loadJSX(filename) {
+        const SHARE_PARAM = 'state';
+        const DEFAULT_FILE = 'truelayer-calculator-reverse-engineered.jsx';
+
+        const selectEl = document.getElementById('jsx-select');
+        const inputEl = document.getElementById('jsx-input');
+        const loadBtn = document.getElementById('load-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const shareUrlEl = document.getElementById('share-url');
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+
+        let currentFile = null;
+        let currentComponent = null;
+        let currentDefaultSettings = {};
+        let currentInitialSettings = {};
+        let currentSettings = {};
+        let currentMountKey = '';
+        let renderVersion = 0;
+
+        function isPlainObject(value) {
+            return value !== null && typeof value === 'object' && !Array.isArray(value);
+        }
+
+        function deepClone(value) {
+            if (Array.isArray(value)) {
+                return value.map(deepClone);
+            }
+            if (isPlainObject(value)) {
+                const copy = {};
+                Object.keys(value).forEach((key) => {
+                    copy[key] = deepClone(value[key]);
+                });
+                return copy;
+            }
+            return value;
+        }
+
+        function deepEqual(a, b) {
+            if (Object.is(a, b)) return true;
+            if (typeof a !== typeof b) return false;
+            if (Array.isArray(a) && Array.isArray(b)) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i += 1) {
+                    if (!deepEqual(a[i], b[i])) return false;
+                }
+                return true;
+            }
+            if (isPlainObject(a) && isPlainObject(b)) {
+                const aKeys = Object.keys(a);
+                const bKeys = Object.keys(b);
+                if (aKeys.length !== bKeys.length) return false;
+                for (const key of aKeys) {
+                    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+                    if (!deepEqual(a[key], b[key])) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function applyOverrides(defaultValue, overrideValue) {
+            if (overrideValue === undefined) {
+                return deepClone(defaultValue);
+            }
+            if (isPlainObject(defaultValue) && isPlainObject(overrideValue)) {
+                const merged = {};
+                const keys = new Set([...Object.keys(defaultValue), ...Object.keys(overrideValue)]);
+                keys.forEach((key) => {
+                    merged[key] = applyOverrides(defaultValue[key], overrideValue[key]);
+                });
+                return merged;
+            }
+            return deepClone(overrideValue);
+        }
+
+        function diffFromDefaults(currentValue, defaultValue) {
+            if (deepEqual(currentValue, defaultValue)) return undefined;
+            if (Array.isArray(currentValue) && Array.isArray(defaultValue)) {
+                return deepClone(currentValue);
+            }
+            if (isPlainObject(currentValue) && isPlainObject(defaultValue)) {
+                const delta = {};
+                Object.keys(currentValue).forEach((key) => {
+                    const child = diffFromDefaults(currentValue[key], defaultValue[key]);
+                    if (child !== undefined) {
+                        delta[key] = child;
+                    }
+                });
+                return Object.keys(delta).length > 0 ? delta : undefined;
+            }
+            return deepClone(currentValue);
+        }
+
+        function encodeBase64Url(value) {
+            const json = JSON.stringify(value);
+            const bytes = new TextEncoder().encode(json);
+            let binary = '';
+            bytes.forEach((byte) => {
+                binary += String.fromCharCode(byte);
+            });
+            return btoa(binary)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/g, '');
+        }
+
+        function decodeBase64Url(value) {
+            const normalized = value
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            const padding = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4));
+            const binary = atob(normalized + padding);
+            const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+            const json = new TextDecoder().decode(bytes);
+            return JSON.parse(json);
+        }
+
+        function parseSharedState(encoded) {
+            if (!encoded) return null;
+            try {
+                const parsed = decodeBase64Url(encoded);
+                if (!isPlainObject(parsed) || typeof parsed.file !== 'string') return null;
+                const overrides = isPlainObject(parsed.overrides) ? parsed.overrides : {};
+                return { file: parsed.file, overrides };
+            } catch (err) {
+                console.warn('Invalid shared state in URL:', err);
+                return null;
+            }
+        }
+
+        function updateFileInputs(filename) {
+            inputEl.value = filename;
+            const hasOption = Array.from(selectEl.options).some((opt) => opt.value === filename);
+            selectEl.value = hasOption ? filename : '';
+        }
+
+        function buildShareUrl() {
+            const url = new URL(window.location.href);
+            if (currentFile) {
+                url.searchParams.set('file', currentFile);
+            } else {
+                url.searchParams.delete('file');
+            }
+            const overrides = diffFromDefaults(currentSettings, currentDefaultSettings);
+            if (overrides && Object.keys(overrides).length > 0) {
+                url.searchParams.set(SHARE_PARAM, encodeBase64Url({
+                    file: currentFile,
+                    overrides
+                }));
+            } else {
+                url.searchParams.delete(SHARE_PARAM);
+            }
+            return url;
+        }
+
+        function updateShareUrl({ pushHistory = false } = {}) {
+            if (!currentFile) return;
+            const url = buildShareUrl();
+            shareUrlEl.value = url.toString();
+            if (pushHistory) {
+                window.history.pushState({}, '', url);
+            } else {
+                window.history.replaceState({}, '', url);
+            }
+        }
+
+        function handleSettingsChange(nextSettings) {
+            if (!isPlainObject(nextSettings)) return;
+            currentSettings = deepClone(nextSettings);
+            updateShareUrl();
+        }
+
+        function renderCurrentComponent() {
+            if (!currentComponent) return;
+            root.render(React.createElement(currentComponent, {
+                key: currentMountKey,
+                initialSettings: currentInitialSettings,
+                onSettingsChange: handleSettingsChange
+            }));
+        }
+
+        async function loadJSX(filename, { initialSettingsOverrides = {}, pushHistory = true } = {}) {
             try {
                 root.render(React.createElement('div', { className: 'loading' }, `Loading ${filename}...`));
 
@@ -163,12 +370,18 @@
                     throw new Error(`No default export found in ${filename}`);
                 }
 
-                root.render(React.createElement(Component));
+                currentFile = filename;
+                currentComponent = Component;
+                updateFileInputs(filename);
 
-                // Update URL parameter without recharging
-                const newUrl = new URL(window.location);
-                newUrl.searchParams.set('file', filename);
-                window.history.pushState({}, '', newUrl);
+                const defaults = isPlainObject(module.DEFAULT_SETTINGS) ? module.DEFAULT_SETTINGS : {};
+                currentDefaultSettings = deepClone(defaults);
+                currentInitialSettings = applyOverrides(currentDefaultSettings, initialSettingsOverrides);
+                currentSettings = deepClone(currentInitialSettings);
+
+                currentMountKey = `${filename}:${++renderVersion}`;
+                renderCurrentComponent();
+                updateShareUrl({ pushHistory });
 
             } catch (err) {
                 console.error(err);
@@ -180,47 +393,58 @@
             }
         }
 
-        const selectEl = document.getElementById('jsx-select');
-        const inputEl = document.getElementById('jsx-input');
-        const loadBtn = document.getElementById('load-btn');
-
         selectEl.addEventListener('change', (e) => {
             if (e.target.value) {
-                inputEl.value = e.target.value;
-                loadJSX(e.target.value);
+                loadJSX(e.target.value, { pushHistory: true });
             }
         });
 
         loadBtn.addEventListener('click', () => {
             const filename = inputEl.value || selectEl.value;
-            if (filename) loadJSX(filename);
+            if (filename) loadJSX(filename, { pushHistory: true });
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (!currentComponent || !currentFile) return;
+            currentInitialSettings = deepClone(currentDefaultSettings);
+            currentSettings = deepClone(currentDefaultSettings);
+            currentMountKey = `${currentFile}:${++renderVersion}`;
+            renderCurrentComponent();
+            updateShareUrl();
+        });
+
+        copyLinkBtn.addEventListener('click', async () => {
+            const link = shareUrlEl.value;
+            if (!link) return;
+            try {
+                await navigator.clipboard.writeText(link);
+            } catch (err) {
+                console.warn('Clipboard API unavailable, falling back to text selection.', err);
+                shareUrlEl.focus();
+                shareUrlEl.select();
+                document.execCommand('copy');
+            }
         });
 
         inputEl.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const filename = inputEl.value;
-                if (filename) loadJSX(filename);
+                if (filename) loadJSX(filename, { pushHistory: true });
             }
         });
 
         // Initialize from URL param or default
         const urlParams = new URLSearchParams(window.location.search);
+        const sharedState = parseSharedState(urlParams.get(SHARE_PARAM));
         const fileParam = urlParams.get('file');
+        const initialFile = sharedState?.file || fileParam || DEFAULT_FILE;
+        const initialOverrides = sharedState?.overrides || {};
 
-        if (fileParam) {
-            inputEl.value = fileParam;
-            // Select the option if it matches
-            Array.from(selectEl.options).forEach(opt => {
-                if (opt.value === fileParam) selectEl.value = fileParam;
-            });
-            loadJSX(fileParam);
-        } else {
-            // Default to the known file if no URL param
-            const defaultFile = 'truelayer-calculator-reverse-engineered.jsx';
-            inputEl.value = defaultFile;
-            selectEl.value = defaultFile;
-            loadJSX(defaultFile);
-        }
+        updateFileInputs(initialFile);
+        loadJSX(initialFile, {
+            initialSettingsOverrides: initialOverrides,
+            pushHistory: false
+        });
     </script>
 </body>
 
