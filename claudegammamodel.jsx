@@ -1,411 +1,211 @@
 import { useState, useMemo, useCallback } from "react";
-import {
-    AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine
-} from "recharts";
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Legend } from "recharts";
 
+/* ═══════════════════════════════════════════
+   ACTUAL FINANCIALS — FY2022, FY2023, FY2024, H1 2025
+   Sources: Annual Report 2024, Interim Results H1 2025
+   ═══════════════════════════════════════════ */
+const ACTUALS = {
+    group: [
+        { year: 2022, label: "FY2022", rev: 484.6, cogs: 236.9, gp: 247.7, gpM: 0.511, adjEBITDA: 105.1, adjPBT: 87.8, pbt: null, pat: null, eps: 50.6, adjEps: 71.8, netCash: 92.5, cashGenOps: 99.1, recurring: 0.89 },
+        { year: 2023, label: "FY2023", rev: 521.7, cogs: 254.5, gp: 267.2, gpM: 0.512, opex: 200.2, exceptional: 16.0, opProfit: 67.0, finInc: 5.4, finExp: 0.9, pbt: 71.5, tax: 17.8, taxRate: 0.25, pat: 53.7, adjEBITDA: 114.3, adjPBT: 97.9, eps: 54.9, adjEps: 75.1, netCash: 134.8, cashGenOps: 123.5, dna: 21.3, dnaBC: 10.0, recurring: 0.89 },
+        { year: 2024, label: "FY2024", rev: 579.4, cogs: 279.1, gp: 300.3, gpM: 0.518, opex: 210.0, exceptional: 0, opProfit: 90.3, finInc: 7.1, finExp: 1.8, pbt: 95.6, tax: 25.8, taxRate: 0.27, pat: 69.8, adjEBITDA: 125.5, adjPBT: 111.9, eps: 72.0, adjEps: 85.1, netCash: 153.7, cashGenOps: 116.8, dna: 20.4, dnaBC: 13.4, recurring: 0.89 },
+        { year: 2025, label: "H1 2025", period: "H1", rev: 316.6, cogs: 144.6, gp: 172.0, gpM: 0.543, opex: 127.6, exceptional: 7.3, opProfit: 44.4, finInc: 2.0, finExp: 2.9, pbt: 43.5, tax: 11.1, taxRate: 0.26, pat: 32.4, adjEBITDA: 70.9, adjPBT: 61.0, eps: 34.1, adjEps: 47.9, netDebt: 21.6, cashGenOps: 53.1, dna: 15.8, dnaBC: 9.6, recurring: 0.90 },
+    ],
+    segments: {
+        2023: [
+            { name: "Gamma Business", rev: 332.2, gp: 176.1, adjEBITDA: 85.0, gpM: 0.530 },
+            { name: "Gamma Enterprise", rev: 110.1, gp: 52.6, adjEBITDA: 29.6, gpM: 0.478 },
+            { name: "Europe", rev: 79.4, gp: 38.5, adjEBITDA: 10.2, gpM: 0.485 },
+            { name: "Central", rev: 0, gp: 0, adjEBITDA: -10.5 },
+        ],
+        2024: [
+            { name: "Gamma Business", rev: 368.9, gp: 194.7, adjEBITDA: 95.0, gpM: 0.528, spRev: 76.3, spGP: 36.3 },
+            { name: "Gamma Enterprise", rev: 126.5, gp: 60.2, adjEBITDA: 31.4, gpM: 0.476 },
+            { name: "Europe", rev: 84.0, gp: 45.4, adjEBITDA: 11.8, gpM: 0.540, deRev: 54.3, deGP: 26.4 },
+            { name: "Central", rev: 0, gp: 0, adjEBITDA: -12.7 },
+        ],
+        "H1 2025": [
+            { name: "Gamma Business", rev: 186.0, gp: 97.4, adjEBITDA: 47.2, gpM: 0.524, spRev: 43.5, spGP: 21.3 },
+            { name: "Gamma Enterprise", rev: 66.5, gp: 30.9, adjEBITDA: 15.8, gpM: 0.465 },
+            { name: "Germany", rev: 49.1, gp: 34.4, adjEBITDA: 9.4, gpM: 0.701 },
+            { name: "Other Europe", rev: 15.0, gp: 9.3, adjEBITDA: 2.4, gpM: 0.620 },
+            { name: "Central", rev: 0, gp: 0, adjEBITDA: -3.9 },
+        ],
+    },
+    volumes: {
+        "Jun 2024": { ukCloudPBX: 1002, euCloudPBX: 161, deCloudSeats: 38, ukSIPtrad: 968, euSIPtrad: 204, ukSIPcloud: 451, ukTeams: 457, euTeams: 12, ukCCaaS: 40 },
+        "Dec 2024": { ukCloudPBX: 1040, euCloudPBX: 434, deCloudSeats: 311, ukSIPtrad: 932, euSIPtrad: 206, ukSIPcloud: 481, ukTeams: 467, euTeams: 14, ukCCaaS: 45 },
+        "Jun 2025": { ukCloudPBX: 1063, euCloudPBX: 687, deCloudSeats: 565, ukSIPtrad: 902, euSIPtrad: 201, ukSIPcloud: 498, ukTeams: 523, euTeams: 17, ukCCaaS: 48, ciscoUsers: 28, totalCloud: 1800, phoneLine: 45 },
+    },
+    consensus2025: { adjEBITDA_low: 139.4, adjEBITDA_high: 143.1, adjEPS_low: 89.9, adjEPS_high: 93.9 },
+};
+
+/* ═══════════════════════════════════════════
+   9 PRODUCT DRIVER TREES (from Excel workbook)
+   ═══════════════════════════════════════════ */
 const PRODUCTS = [
     {
-        id: "phoneline", name: "PhoneLine+ / Placetel", category: "Cloud Communications",
-        tamUnit: "Seats / lines", color: "#6366f1",
-        coreEq: "Annual TAM = addressable billable seats × effective annual ARPU",
-        scope: "Entry-level SME cloud telephony. UK PhoneLine+ plus Germany digital / self-serve Placetel.",
-        quantity: [
-            { id: "q1", label: "Addressable micro / SMB businesses", value: 5200000, hint: "UK PSTN / single-line replacement + Germany digital SMB" },
-            { id: "q2", label: "Sites per business", value: 1.0, hint: "1.0 for single-site microbusinesses", mult: true },
-            { id: "q3", label: "Seats / lines per site", value: 1.8, hint: "PhoneLine+ skews lower-seat / single-line", mult: true },
-            { id: "q4", label: "Cloud telephony adoption rate", value: 0.12, hint: "Share willing to adopt cloud vs analogue/PBX", pct: true },
-            { id: "q5", label: "Gamma reachable share", value: 0.04, hint: "Coverage via channel, digital direct and partner reach", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Base monthly seat ARPU", value: 8.5, hint: "Lower-cost base vs richer UCaaS", unit: "£/mo" },
-            { id: "p2", label: "Add-on ARPU (IVR / WhatsApp / eSIM)", value: 2.0, hint: "New variants lift price over time", unit: "£/mo" },
-            { id: "p3", label: "Annualised activation / device rev", value: 18, hint: "Setup, devices, number porting amortised", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Base SMB site / line growth", value: 0.01 },
-            { id: "c2", label: "PSTN switch-off uplift", value: 0.04 },
-            { id: "c3", label: "Cloud migration uplift", value: 0.025 },
-            { id: "c4", label: "Digital / self-serve penetration", value: 0.02 },
-            { id: "c5", label: "Macro / price sensitivity drag", value: -0.015 },
-        ],
-        drivers: [
-            { bucket: "Regulation", driver: "UK PSTN switch-off forces analogue line replacement", dir: "Positive" },
-            { bucket: "Macro / mix", driver: "Customers opting for lower-priced cloud solutions", dir: "Mixed" },
-            { bucket: "Product", driver: "PhoneLine+ variants (eSIM, WhatsApp, IVR) broaden use cases", dir: "Positive" },
-            { bucket: "Route to market", driver: "Portal simplification and digital/direct reach", dir: "Positive" },
-            { bucket: "Germany", driver: "Placetel benefits from low cloud penetration", dir: "Positive" },
-            { bucket: "Competition", driver: "Cheaper mix can hold revenue growth below unit growth", dir: "Negative" },
-        ],
-        anchors: [
-            { metric: "PhoneLine+ seats", value: "45,000", why: "Current UK microbusiness / single-line scale", src: "S2" },
-            { metric: "UK cloud comms net adds (H1 2025)", value: "23,000", why: "Ongoing seat growth in lower-priced UK cloud", src: "S5" },
-            { metric: "UK Cloud PBX seats", value: "1,063,000", why: "Total UK cloud PBX base — ceiling reference", src: "S4" },
-            { metric: "Germany cloud seats", value: "565,000", why: "German cloud base including Placetel", src: "S2" },
-        ],
+        id: "phoneline", name: "PhoneLine+ / Placetel", cat: "Cloud Comms", color: "#6366f1", tamUnit: "Seats",
+        eq: "Seats × annual ARPU",
+        quantity: [{ l: "Addressable micro/SMB businesses", v: 5200000 }, { l: "Sites per business", v: 1.0 }, { l: "Seats per site", v: 1.8 }, { l: "Cloud adoption rate", v: 0.12 }, { l: "Gamma share", v: 0.04 }],
+        price: [{ l: "Base monthly ARPU", v: 8.5 }, { l: "Add-on ARPU", v: 2.0 }, { l: "Annual activation", v: 18 }],
+        cagr: [{ l: "Base SMB growth", v: 0.01 }, { l: "PSTN switch-off", v: 0.04 }, { l: "Cloud migration", v: 0.025 }, { l: "Digital penetration", v: 0.02 }, { l: "Macro drag", v: -0.015 }],
+        anchors: [{ m: "PhoneLine+ seats", v: "45k" }, { m: "UK cloud net adds H1", v: "23k" }, { m: "DE cloud seats", v: "565k" }]
     },
     {
-        id: "horizon", name: "Horizon / STARFACE", category: "Cloud Communications",
-        tamUnit: "Seats", color: "#8b5cf6",
-        coreEq: "Annual TAM = addressable seats × effective annual ARPU",
-        scope: "Core cloud PBX / UCaaS. Gamma Horizon (UK) and STARFACE (Germany); richer feature set, higher ARPU.",
-        quantity: [
-            { id: "q1", label: "Addressable SMB / mid-market businesses", value: 2800000, hint: "Full cloud PBX rather than basic line replacement" },
-            { id: "q2", label: "Employees / users per business", value: 12, hint: "Headcount or active comms users", mult: true },
-            { id: "q3", label: "Telephony users as % of employees", value: 0.7, hint: "Not all roles need full voice seat", pct: true },
-            { id: "q4", label: "Cloud PBX adoption rate", value: 0.18, hint: "Hardware PBX to cloud + greenfield", pct: true },
-            { id: "q5", label: "Gamma reachable share / channel", value: 0.035, hint: "UK channel + Germany partner network", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Base monthly seat ARPU", value: 12.5, hint: "Core UCaaS / cloud PBX seat price", unit: "£/mo" },
-            { id: "p2", label: "Premium feature / AI add-on ARPU", value: 3.5, hint: "AI, analytics, recording, CCaaS", unit: "£/mo" },
-            { id: "p3", label: "Annualised devices / prof. services", value: 35, hint: "Handsets, onboarding, implementation", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Base seat / employment growth", value: 0.01 },
-            { id: "c2", label: "Hardware PBX to cloud uplift", value: 0.035 },
-            { id: "c3", label: "German cloud underpenetration", value: 0.03 },
-            { id: "c4", label: "AI / richer-feature upsell", value: 0.02 },
-            { id: "c5", label: "Macro spend drag", value: -0.015 },
-        ],
-        drivers: [
-            { bucket: "Customer need", driver: "Businesses require more complex communications", dir: "Positive" },
-            { bucket: "Migration", driver: "Hardware PBX to cloud continues in UK and Germany", dir: "Positive" },
-            { bucket: "Germany", driver: "German cloud market underpenetrated — largest in Europe", dir: "Positive" },
-            { bucket: "Product", driver: "STARFACE AI features broaden value proposition", dir: "Positive" },
-            { bucket: "Route to market", driver: "Seat blocks from sub-scale providers exiting market", dir: "Positive" },
-            { bucket: "Macro", driver: "SMEs slowing net seat adds vs H1 2024", dir: "Negative" },
-        ],
-        anchors: [
-            { metric: "UK Cloud PBX seats", value: "1,063,000", why: "Current UK cloud PBX installed base", src: "S4" },
-            { metric: "Europe Cloud PBX seats", value: "687,000", why: "European base including Germany", src: "S4" },
-            { metric: "Germany cloud seats", value: "565,000", why: "Scale achieved post-acquisition", src: "S2" },
-            { metric: "Germany H1 2025 adds", value: "29,000", why: "Pro forma seat adds — current momentum", src: "S2" },
-            { metric: "Total cloud seats", value: "1,800,000", why: "Cross-group cloud scale benchmark", src: "S10" },
-        ],
+        id: "horizon", name: "Horizon / STARFACE", cat: "Cloud Comms", color: "#8b5cf6", tamUnit: "Seats",
+        eq: "Seats × annual ARPU",
+        quantity: [{ l: "Addressable SMB/mid-market", v: 2800000 }, { l: "Employees per business", v: 12 }, { l: "Telephony % of employees", v: 0.70 }, { l: "Cloud PBX adoption", v: 0.18 }, { l: "Gamma share", v: 0.035 }],
+        price: [{ l: "Base monthly ARPU", v: 12.5 }, { l: "Premium/AI add-on", v: 3.5 }, { l: "Annual devices/services", v: 35 }],
+        cagr: [{ l: "Base seat growth", v: 0.01 }, { l: "HW PBX→cloud", v: 0.035 }, { l: "DE underpenetration", v: 0.03 }, { l: "AI/feature upsell", v: 0.02 }, { l: "Macro drag", v: -0.015 }],
+        anchors: [{ m: "UK Cloud PBX seats", v: "1,063k" }, { m: "DE cloud seats", v: "565k" }, { m: "Total cloud", v: "1.8m" }, { m: "DE H1 adds", v: "29k" }]
     },
     {
-        id: "cisco", name: "Cisco Suite / iPECS", category: "Cloud Communications",
-        tamUnit: "Users / seats", color: "#a855f7",
-        coreEq: "Annual TAM = addressable collaboration users × effective annual ARPU",
-        scope: "Third-party collaboration suites. Cisco Collaboration Suite and iPECS — OEM collaboration TAM.",
-        quantity: [
-            { id: "q1", label: "Addressable collaboration customers", value: 450000, hint: "SME/mid-market open to Cisco/iPECS" },
-            { id: "q2", label: "Users per customer", value: 35, hint: "Installed/target seats per deployment", mult: true },
-            { id: "q3", label: "Telephony / managed-service attach", value: 0.25, hint: "Subset buying paid telephony / managed services", pct: true },
-            { id: "q4", label: "Countries / deployments per customer", value: 1.3, hint: "International customers deploy across countries", mult: true },
-            { id: "q5", label: "Gamma partner coverage / win rate", value: 0.008, hint: "Partner count, launch timing, sales productivity", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Monthly software licence ARPU", value: 15, hint: "Core collaboration / telephony fee", unit: "£/mo" },
-            { id: "p2", label: "Voice / managed-service ARPU", value: 5, hint: "Gamma managed layer, calling, support", unit: "£/mo" },
-            { id: "p3", label: "Annualised device / implementation", value: 40, hint: "Setup, devices, migrations amortised", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Base collaboration seat growth", value: 0.02 },
-            { id: "c2", label: "Cisco / iPECS channel activation", value: 0.08 },
-            { id: "c3", label: "International rollout uplift", value: 0.04 },
-            { id: "c4", label: "AI / advanced collaboration", value: 0.02 },
-            { id: "c5", label: "Competitive / provisioning drag", value: -0.02 },
-        ],
-        drivers: [
-            { bucket: "Partnerships", driver: "Strong sales of Cisco Collaboration Suite", dir: "Positive" },
-            { bucket: "Launch", driver: "Full suite available across Germany, UK and Spain", dir: "Positive" },
-            { bucket: "Pipeline", driver: "Spanish partner committed 40k seats over 5 years", dir: "Positive" },
-            { bucket: "Execution", driver: "Run-rate >2,000 seats/month by Aug 2025", dir: "Positive" },
-            { bucket: "Portal", driver: "Single portal ordering lowers friction", dir: "Positive" },
-            { bucket: "Launch risk", driver: "UK full market launch still ramping in 2025", dir: "Mixed" },
-        ],
-        anchors: [
-            { metric: "Cisco Suite users", value: "28,000", why: "Current installed base, up 75% in H1", src: "S10" },
-            { metric: "Cisco user growth H1 2025", value: "75%", why: "Strong early platform ramp", src: "S10" },
-            { metric: "Spain partner commitment", value: "40,000 seats", why: "Committed over five years", src: "S2" },
-            { metric: "Run-rate additions Aug 2025", value: "2,000/mo", why: "Seat velocity improving", src: "S2" },
-        ],
+        id: "cisco", name: "Cisco / iPECS", cat: "Cloud Comms", color: "#a855f7", tamUnit: "Users",
+        eq: "Users × annual ARPU",
+        quantity: [{ l: "Addressable collab customers", v: 450000 }, { l: "Users per customer", v: 35 }, { l: "Telephony attach", v: 0.25 }, { l: "Countries per customer", v: 1.3 }, { l: "Gamma win rate", v: 0.008 }],
+        price: [{ l: "Monthly licence ARPU", v: 15 }, { l: "Voice/managed ARPU", v: 5 }, { l: "Annual implementation", v: 40 }],
+        cagr: [{ l: "Base collab growth", v: 0.02 }, { l: "Cisco channel activation", v: 0.08 }, { l: "International rollout", v: 0.04 }, { l: "AI/advanced features", v: 0.02 }, { l: "Provisioning drag", v: -0.02 }],
+        anchors: [{ m: "Cisco users", v: "28k" }, { m: "H1 growth", v: "75%" }, { m: "Spain commitment", v: "40k seats" }, { m: "Run-rate", v: "2k/mo" }]
     },
     {
-        id: "sip", name: "SIP Trunking", category: "Calling",
-        tamUnit: "Trunks", color: "#f59e0b",
-        coreEq: "Annual TAM = addressable trunks × effective annual ARPU",
-        scope: "SIP trunking for traditional hardware PBX and legacy voice, including number hosting and call routing.",
-        quantity: [
-            { id: "q1", label: "Addressable PBX sites", value: 1800000, hint: "Installed hardware / legacy PBX base" },
-            { id: "q2", label: "Sites / branches per customer", value: 2.2, hint: "Branch-heavy customers", mult: true },
-            { id: "q3", label: "Trunks per site", value: 4.5, hint: "Concurrent call capacity + spare", mult: true },
-            { id: "q4", label: "SIP trunking attach / retention", value: 0.22, hint: "Sites retaining SIP vs migrating to cloud", pct: true },
-            { id: "q5", label: "Gamma coverage / win rate", value: 0.045, hint: "Channel, direct and carrier relationships", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Monthly trunk rental ARPU", value: 4.5, hint: "Recurring fee per trunk / number bundle", unit: "£/mo" },
-            { id: "p2", label: "Voice traffic / number hosting ARPU", value: 2.0, hint: "Usage, minutes, ancillary hosting", unit: "£/mo" },
-            { id: "p3", label: "Annualised porting / setup rev", value: 8, hint: "Porting, install amortised annually", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Base site / trunk growth", value: -0.02 },
-            { id: "c2", label: "PSTN switch-off replacement", value: 0.02 },
-            { id: "c3", label: "Non-Gamma cloud PBX support", value: 0.015 },
-            { id: "c4", label: "Europe / Germany retention", value: 0.01 },
-            { id: "c5", label: "Hardware PBX to cloud drag", value: -0.04 },
-        ],
-        drivers: [
-            { bucket: "Installed base", driver: "~40% of UK market still has hardware users to move", dir: "Positive" },
-            { bucket: "Trend", driver: "Traditional PBX SIP trunks declining in UK and Europe", dir: "Negative" },
-            { bucket: "Offset", driver: "SIP trunks for non-Gamma cloud PBX still growing", dir: "Positive" },
-            { bucket: "Macro", driver: "Migration pace slowed in H1 2025", dir: "Mixed" },
-            { bucket: "Economics", driver: "Migrating SIP to Gamma cloud increases unit GP", dir: "Positive" },
-            { bucket: "Rationalisation", driver: "Some SIP customers trimming service to save cost", dir: "Negative" },
-        ],
-        anchors: [
-            { metric: "UK traditional PBX SIP trunks", value: "902,000", why: "UK legacy SIP base, down 3% vs Dec 2024", src: "S4" },
-            { metric: "Europe traditional SIP trunks", value: "201,000", why: "European base, down 2%", src: "S4" },
-            { metric: "UK SIP for non-Gamma cloud PBX", value: "498,000", why: "Wholesale still growing (+4%)", src: "S4" },
-            { metric: "SIP conversions H1 2025", value: "30,000", why: "Pace of conversion to higher-value", src: "S2" },
-        ],
+        id: "sip", name: "SIP Trunking", cat: "Calling", color: "#f59e0b", tamUnit: "Trunks",
+        eq: "Trunks × annual ARPU",
+        quantity: [{ l: "Addressable PBX sites", v: 1800000 }, { l: "Sites per customer", v: 2.2 }, { l: "Trunks per site", v: 4.5 }, { l: "SIP attach/retention", v: 0.22 }, { l: "Gamma share", v: 0.045 }],
+        price: [{ l: "Monthly trunk ARPU", v: 4.5 }, { l: "Traffic/hosting ARPU", v: 2.0 }, { l: "Annual porting/setup", v: 8 }],
+        cagr: [{ l: "Base trunk growth", v: -0.02 }, { l: "PSTN replacement", v: 0.02 }, { l: "Non-Gamma PBX support", v: 0.015 }, { l: "Europe retention", v: 0.01 }, { l: "HW→cloud drag", v: -0.04 }],
+        anchors: [{ m: "UK trad PBX SIP", v: "902k" }, { m: "EU trad SIP", v: "201k" }, { m: "UK non-Gamma cloud SIP", v: "498k" }, { m: "H1 conversions", v: "30k" }]
     },
     {
-        id: "voice", name: "Voice Enablement", category: "Calling",
-        tamUnit: "Users", color: "#22c55e",
-        coreEq: "Annual TAM = voice-enabled users × effective annual ARPU",
-        scope: "Voice enablement for MS Teams, Cisco, Amazon, Genesys. Operator Connect and Direct Routing.",
-        quantity: [
-            { id: "q1", label: "Addressable UC platform customers", value: 850000, hint: "Teams, Cisco, Amazon, Genesys bases" },
-            { id: "q2", label: "Users per customer", value: 45, hint: "Telephony-relevant users", mult: true },
-            { id: "q3", label: "Voice-enabled attach rate", value: 0.15, hint: "Subset purchasing full voice enablement", pct: true },
-            { id: "q4", label: "Countries / markets per deployment", value: 1.4, hint: "Multinational deployments multiply seats", mult: true },
-            { id: "q5", label: "Gamma coverage / partner reach", value: 0.009, hint: "Channel, direct enterprise, hyperscaler", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Monthly enablement ARPU / user", value: 3.5, hint: "Operator Connect / Direct Routing fee", unit: "£/mo" },
-            { id: "p2", label: "Numbering / compliance / managed ARPU", value: 1.5, hint: "Local numbers, admin, analytics", unit: "£/mo" },
-            { id: "p3", label: "Annualised provisioning rev / user", value: 10, hint: "Migration effort amortised", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Base UC platform seat growth", value: 0.03 },
-            { id: "c2", label: "Teams / Operator Connect adoption", value: 0.06 },
-            { id: "c3", label: "International rollout", value: 0.03 },
-            { id: "c4", label: "Hyperscaler / Cisco partnership", value: 0.02 },
-            { id: "c5", label: "Competitive price pressure drag", value: -0.02 },
-        ],
-        drivers: [
-            { bucket: "Platform", driver: "MS Teams telephony adoption growing strongly", dir: "Positive" },
-            { bucket: "International", driver: "Operator Connect International in 14 countries", dir: "Positive" },
-            { bucket: "Execution", driver: "UK H1 2025 Teams adds doubled vs prior year", dir: "Positive" },
-            { bucket: "Partnerships", driver: "Voice enablement extends beyond MS to Cisco+", dir: "Positive" },
-            { bucket: "Migration", driver: "SIP-to-Teams journey becoming easier", dir: "Positive" },
-            { bucket: "Competition", driver: "Native platform economics can compress price", dir: "Negative" },
-        ],
-        anchors: [
-            { metric: "UK MS Teams voice-enabled", value: "523,000", why: "UK installed base, up 12% vs Dec 2024", src: "S4" },
-            { metric: "Europe Teams voice-enabled", value: "17,000", why: "European base, up 21%", src: "S4" },
-            { metric: "UK H1 2025 adds", value: "56,000", why: "vs 28,000 in H1 2024 — doubled", src: "S2" },
-            { metric: "OC International", value: "14 countries", why: "Pan-European capability", src: "S2" },
-        ],
+        id: "voice", name: "Voice Enablement", cat: "Calling", color: "#22c55e", tamUnit: "Users",
+        eq: "Users × annual ARPU",
+        quantity: [{ l: "Addressable UC customers", v: 850000 }, { l: "Users per customer", v: 45 }, { l: "Voice attach rate", v: 0.15 }, { l: "Countries per deployment", v: 1.4 }, { l: "Gamma share", v: 0.009 }],
+        price: [{ l: "Monthly enablement ARPU", v: 3.5 }, { l: "Numbering/managed ARPU", v: 1.5 }, { l: "Annual provisioning", v: 10 }],
+        cagr: [{ l: "Base UC growth", v: 0.03 }, { l: "Teams/OC adoption", v: 0.06 }, { l: "International rollout", v: 0.03 }, { l: "Hyperscaler partnerships", v: 0.02 }, { l: "Price pressure drag", v: -0.02 }],
+        anchors: [{ m: "UK Teams users", v: "523k" }, { m: "EU Teams users", v: "17k" }, { m: "UK H1 adds", v: "56k" }, { m: "OC International", v: "14 countries" }]
     },
     {
-        id: "serviceprov", name: "Service Provider", category: "Calling",
-        tamUnit: "Trunks / numbers", color: "#10b981",
-        coreEq: "Annual TAM = outsourced platform units × effective annual wholesale ARPU",
-        scope: "Wholesale carrier services for carriers, operators and platform providers.",
-        quantity: [
-            { id: "q1", label: "Addressable providers / platforms", value: 350, hint: "UCaaS, CPaaS, CCaaS cloud platforms" },
-            { id: "q2", label: "Countries outsourced per provider", value: 4.5, hint: "Each provider may need multiple countries", mult: true },
-            { id: "q3", label: "End-users / numbers per provider-country", value: 18000, hint: "Numbers, trunks or end users", mult: true },
-            { id: "q4", label: "Outsourced network penetration", value: 0.35, hint: "Some self-build; others outsource", pct: true },
-            { id: "q5", label: "Gamma coverage / win rate", value: 0.025, hint: "Partner relationships and country availability", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Monthly number hosting / trunk ARPU", value: 0.85, hint: "Core recurring wholesale fee", unit: "£/mo" },
-            { id: "p2", label: "Traffic / compliance / service ARPU", value: 0.35, hint: "Usage-based + regulatory extras", unit: "£/mo" },
-            { id: "p3", label: "Annualised integration / onboarding", value: 2.5, hint: "Onboarding, setup amortised", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Provider platform growth", value: 0.03 },
-            { id: "c2", label: "International expansion", value: 0.04 },
-            { id: "c3", label: "Hyperscaler / MQ partner growth", value: 0.025 },
-            { id: "c4", label: "New country launches", value: 0.02 },
-            { id: "c5", label: "Voice traffic decline / commoditisation", value: -0.025 },
-        ],
-        drivers: [
-            { bucket: "Customer base", driver: "Serves many Gartner MQ service providers", dir: "Positive" },
-            { bucket: "Growth vector", driver: "Proposition can grow globally", dir: "Positive" },
-            { bucket: "Trading", driver: "Strong growth in SIP for non-Gamma cloud PBX", dir: "Positive" },
-            { bucket: "Offset", driver: "Voice traffic is declining", dir: "Negative" },
-            { bucket: "Complexity", driver: "Regulation favours outsourcing", dir: "Positive" },
-            { bucket: "Route to market", driver: "Expansion beyond UK into Europe and beyond", dir: "Positive" },
-        ],
-        anchors: [
-            { metric: "SP revenue (H1 2025)", value: "£43.5m", why: "Current revenue scale", src: "S5" },
-            { metric: "SP gross profit (H1 2025)", value: "£21.3m", why: "Current GP scale", src: "S5" },
-            { metric: "Share of Gamma Biz revenue", value: "23%", why: "Materiality within SME/channel", src: "S5" },
-            { metric: "Share of Gamma Biz GP", value: "22%", why: "Materiality within SME/channel", src: "S5" },
-        ],
+        id: "sp", name: "Service Provider", cat: "Calling", color: "#10b981", tamUnit: "Numbers/trunks",
+        eq: "Units × annual wholesale ARPU",
+        quantity: [{ l: "Addressable providers", v: 350 }, { l: "Countries per provider", v: 4.5 }, { l: "Units per provider-country", v: 18000 }, { l: "Outsource penetration", v: 0.35 }, { l: "Gamma win rate", v: 0.025 }],
+        price: [{ l: "Monthly hosting ARPU", v: 0.85 }, { l: "Traffic/compliance ARPU", v: 0.35 }, { l: "Annual integration", v: 2.5 }],
+        cagr: [{ l: "Provider platform growth", v: 0.03 }, { l: "International expansion", v: 0.04 }, { l: "Hyperscaler growth", v: 0.025 }, { l: "New country launches", v: 0.02 }, { l: "Voice decline drag", v: -0.025 }],
+        anchors: [{ m: "SP revenue H1", v: "£43.5m" }, { m: "SP GP H1", v: "£21.3m" }, { m: "% of Gamma Biz rev", v: "23%" }, { m: "% of Gamma Biz GP", v: "22%" }]
     },
     {
-        id: "ethernet", name: "Ethernet", category: "Connectivity",
-        tamUnit: "Circuits", color: "#3b82f6",
-        coreEq: "Annual TAM = addressable circuits × effective annual ARPU",
-        scope: "Dedicated fixed connectivity / ethernet for enterprise and multi-site, often with SD-WAN.",
-        quantity: [
-            { id: "q1", label: "Addressable enterprise / public sites", value: 650000, hint: "Sites needing dedicated/resilient connectivity" },
-            { id: "q2", label: "Circuits per site", value: 1.5, hint: "Primary, backup and branch circuits", mult: true },
-            { id: "q3", label: "Dedicated-access attach rate", value: 0.35, hint: "Sites needing ethernet vs broadband", pct: true },
-            { id: "q4", label: "SD-WAN / managed attach rate", value: 0.2, hint: "Managed overlays increase revenue pool", pct: true },
-            { id: "q5", label: "Gamma coverage / win rate", value: 0.03, hint: "Enterprise account coverage", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Monthly circuit ARPU", value: 185, hint: "Base recurring ethernet", unit: "£/mo" },
-            { id: "p2", label: "Managed network / SD-WAN ARPU", value: 45, hint: "Managed overlays, monitoring", unit: "£/mo" },
-            { id: "p3", label: "Annualised install / project rev", value: 250, hint: "Implementation amortised", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Base site / circuit growth", value: 0.01 },
-            { id: "c2", label: "SD-WAN / cloud-connectivity", value: 0.03 },
-            { id: "c3", label: "Public sector / enterprise wins", value: 0.02 },
-            { id: "c4", label: "Fibre availability uplift", value: 0.015 },
-            { id: "c5", label: "Price-war drag", value: -0.03 },
-        ],
-        drivers: [
-            { bucket: "Demand", driver: "Multi-site enterprises need resilient connectivity", dir: "Positive" },
-            { bucket: "Upsell", driver: "SD-WAN deepens account penetration", dir: "Positive" },
-            { bucket: "Competition", driver: "Alt-net price war pressuring renewals", dir: "Negative" },
-            { bucket: "Outlook", driver: "Pricing expected to stabilise after nadir", dir: "Positive" },
-            { bucket: "Wins", driver: "Utilita and Morrisons show enterprise demand", dir: "Positive" },
-            { bucket: "Case study", driver: "Morrisons: 400 supermarkets + 1,200 convenience", dir: "Positive" },
-        ],
-        anchors: [
-            { metric: "Ethernet GP headwind (H1 2025)", value: "£1.0m", why: "Lower-margin renewals", src: "S3" },
-            { metric: "FY26 expected GP headwind", value: "£3.0m", why: "Further price pressure", src: "S3" },
-            { metric: "Morrisons footprint", value: "400 + 1,200", why: "Large multi-site estate", src: "S8" },
-        ],
+        id: "ethernet", name: "Ethernet", cat: "Connectivity", color: "#3b82f6", tamUnit: "Circuits",
+        eq: "Circuits × annual ARPU",
+        quantity: [{ l: "Addressable enterprise sites", v: 650000 }, { l: "Circuits per site", v: 1.5 }, { l: "Dedicated attach rate", v: 0.35 }, { l: "SD-WAN attach rate", v: 0.20 }, { l: "Gamma win rate", v: 0.03 }],
+        price: [{ l: "Monthly circuit ARPU", v: 185 }, { l: "Managed/SD-WAN ARPU", v: 45 }, { l: "Annual install/project", v: 250 }],
+        cagr: [{ l: "Base circuit growth", v: 0.01 }, { l: "SD-WAN uplift", v: 0.03 }, { l: "Enterprise wins", v: 0.02 }, { l: "Fibre availability", v: 0.015 }, { l: "Price-war drag", v: -0.03 }],
+        anchors: [{ m: "Ethernet GP headwind H1", v: "£1.0m" }, { m: "FY26 GP headwind", v: "£3.0m" }, { m: "Morrisons", v: "400+1,200 sites" }]
     },
     {
-        id: "broadband", name: "Business Broadband", category: "Connectivity",
-        tamUnit: "Lines / circuits", color: "#0ea5e9",
-        coreEq: "Annual TAM = addressable broadband lines × effective annual ARPU",
-        scope: "SME broadband / FTTP / SoGEA connectivity sold via Gamma channel and partner network.",
-        quantity: [
-            { id: "q1", label: "Addressable SME sites", value: 4500000, hint: "SME locations rather than employees" },
-            { id: "q2", label: "Broadband lines per site", value: 1.1, hint: "Most have one; branch/resilient may have more", mult: true },
-            { id: "q3", label: "Fibre broadband adoption rate", value: 0.45, hint: "PSTN switch-off forcing copper to fibre", pct: true },
-            { id: "q4", label: "Backup / second-line attach rate", value: 0.08, hint: "Extra backup/secondary lines", pct: true },
-            { id: "q5", label: "Gamma coverage / partner reach", value: 0.025, hint: ">1,500 UK channel partners", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Monthly broadband ARPU", value: 28, hint: "Recurring line rental FTTP/BB", unit: "£/mo" },
-            { id: "p2", label: "Managed router / security add-on", value: 6, hint: "Managed hardware, security, support", unit: "£/mo" },
-            { id: "p3", label: "Annualised activation rev per line", value: 30, hint: "One-off activation amortised", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "FTTP footprint / availability growth", value: 0.03 },
-            { id: "c2", label: "PSTN copper-to-fibre migration", value: 0.025 },
-            { id: "c3", label: "Comparison-site / share gain", value: 0.015 },
-            { id: "c4", label: "Managed-services attach", value: 0.01 },
-            { id: "c5", label: "Fibre margin dilution / price drag", value: -0.025 },
-        ],
-        drivers: [
-            { bucket: "Regulation", driver: "PSTN switch-off forces copper to fibre", dir: "Mixed" },
-            { bucket: "Product", driver: "Wide fibre provider choice + comparison site", dir: "Positive" },
-            { bucket: "Competition", driver: "Fibre carries lower GP than legacy copper", dir: "Negative" },
-            { bucket: "Partnerships", driver: "First wave: BT and PXC on comparison site", dir: "Positive" },
-            { bucket: "Cross-sell", driver: "Managed services partially offset margin pressure", dir: "Positive" },
-            { bucket: "Timing", driver: "Headwind expected each half until end FY26", dir: "Negative" },
-        ],
-        anchors: [
-            { metric: "H1 2025 GP headwind (copper→fibre)", value: "£1.5m", why: "Fibre migration reduced GP", src: "S5" },
-            { metric: "Expected cadence", value: "~£1.5m/half", why: "Similar each half until FY26 end", src: "S2" },
-            { metric: "Comparison-site providers", value: "BT, PXC", why: "Expanding supplier choice", src: "S2" },
-        ],
+        id: "broadband", name: "Business Broadband", cat: "Connectivity", color: "#0ea5e9", tamUnit: "Lines",
+        eq: "Lines × annual ARPU",
+        quantity: [{ l: "Addressable SME sites", v: 4500000 }, { l: "Lines per site", v: 1.1 }, { l: "Fibre adoption rate", v: 0.45 }, { l: "Backup attach rate", v: 0.08 }, { l: "Gamma share", v: 0.025 }],
+        price: [{ l: "Monthly broadband ARPU", v: 28 }, { l: "Managed/security ARPU", v: 6 }, { l: "Annual activation", v: 30 }],
+        cagr: [{ l: "FTTP availability growth", v: 0.03 }, { l: "Copper→fibre migration", v: 0.025 }, { l: "Comparison-site share", v: 0.015 }, { l: "Managed attach", v: 0.01 }, { l: "Fibre margin drag", v: -0.025 }],
+        anchors: [{ m: "H1 GP headwind (Cu→fibre)", v: "£1.5m" }, { m: "Expected cadence", v: "~£1.5m/half" }, { m: "Comparison-site", v: "BT, PXC" }]
     },
     {
-        id: "mobile", name: "Mobile / Fusion IoT", category: "Connectivity",
-        tamUnit: "SIMs / endpoints", color: "#ec4899",
-        coreEq: "Annual TAM = addressable SIMs / endpoints × effective annual ARPU",
-        scope: "Business mobile subscriptions plus Fusion IoT for devices, sensors, non-voice PSTN replacements.",
-        quantity: [
-            { id: "q1", label: "Addressable mobile / IoT endpoints", value: 12000000, hint: "Employee mobile + non-voice devices" },
-            { id: "q2", label: "Devices / endpoints per customer", value: 8, hint: "Multiple endpoints per site/vehicle/asset", mult: true },
-            { id: "q3", label: "SIM / eSIM penetration", value: 0.25, hint: "Not every device needs a dedicated SIM", pct: true },
-            { id: "q4", label: "IoT management / data attach", value: 0.15, hint: "Managed connectivity, control, analytics", pct: true },
-            { id: "q5", label: "Gamma coverage / partner reach", value: 0.004, hint: "Channel, enterprise direct, European", pct: true },
-        ],
-        price: [
-            { id: "p1", label: "Monthly SIM ARPU", value: 6.5, hint: "Core recurring mobile / IoT sub", unit: "£/mo" },
-            { id: "p2", label: "IoT / management / analytics ARPU", value: 3.0, hint: "Fusion IoT management layer", unit: "£/mo" },
-            { id: "p3", label: "Annualised activation / hardware", value: 15, hint: "Devices, provisioning amortised", unit: "£/yr" },
-        ],
-        cagr: [
-            { id: "c1", label: "Business mobile user growth", value: 0.02 },
-            { id: "c2", label: "IoT endpoint growth", value: 0.06 },
-            { id: "c3", label: "PSTN non-voice replacement", value: 0.03 },
-            { id: "c4", label: "eSIM / international deployment", value: 0.015 },
-            { id: "c5", label: "Mobile price competition drag", value: -0.02 },
-        ],
-        drivers: [
-            { bucket: "Regulation", driver: "PSTN switch-off creates non-voice replacement market", dir: "Positive" },
-            { bucket: "Product", driver: "Fusion IoT launched to UK channel July 2025", dir: "Positive" },
-            { bucket: "Use cases", driver: "Lifts, alarms, endpoints — clear targets", dir: "Positive" },
-            { bucket: "Proof point", driver: "Already successful with Fusion IoT in Germany", dir: "Positive" },
-            { bucket: "Roadmap", driver: "eSIM variant planned for UK and Germany", dir: "Positive" },
-            { bucket: "Competition", driver: "Mobile connectivity can commoditise", dir: "Negative" },
-        ],
-        anchors: [
-            { metric: "Fusion IoT launch", value: "1 Jul 2025", why: "Newly opened UK growth vector", src: "S2" },
-            { metric: "Enterprise examples", value: "AA / Centrica", why: "Already selling IoT replacement", src: "S2" },
-            { metric: "eSIM roadmap", value: "UK + Germany", why: "Improves deployment velocity", src: "S2" },
-            { metric: "Mobile enterprise win", value: "Wolverhampton", why: "Enterprise mobile contracts", src: "S3" },
-        ],
+        id: "mobile", name: "Mobile / Fusion IoT", cat: "Connectivity", color: "#ec4899", tamUnit: "SIMs/endpoints",
+        eq: "Endpoints × annual ARPU",
+        quantity: [{ l: "Addressable endpoints", v: 12000000 }, { l: "Devices per customer", v: 8 }, { l: "SIM penetration", v: 0.25 }, { l: "IoT management attach", v: 0.15 }, { l: "Gamma share", v: 0.004 }],
+        price: [{ l: "Monthly SIM ARPU", v: 6.5 }, { l: "IoT/analytics ARPU", v: 3.0 }, { l: "Annual activation/HW", v: 15 }],
+        cagr: [{ l: "Mobile user growth", v: 0.02 }, { l: "IoT endpoint growth", v: 0.06 }, { l: "PSTN non-voice replace", v: 0.03 }, { l: "eSIM deployment", v: 0.015 }, { l: "Price competition drag", v: -0.02 }],
+        anchors: [{ m: "Fusion IoT launch", v: "1 Jul 2025" }, { m: "Enterprise proof", v: "AA / Centrica" }, { m: "eSIM roadmap", v: "UK + DE" }]
     },
 ];
 
-const CATS = ["Cloud Communications", "Calling", "Connectivity"];
-const CAT_C = { "Cloud Communications": "#8b5cf6", "Calling": "#22c55e", "Connectivity": "#3b82f6" };
-const YEARS = Array.from({ length: 11 }, (_, i) => 2025 + i);
+const CATS = ["Cloud Comms", "Calling", "Connectivity"];
+const CAT_C = { "Cloud Comms": "#8b5cf6", "Calling": "#22c55e", "Connectivity": "#3b82f6" };
+const PROJ_YEARS = Array.from({ length: 11 }, (_, i) => 2025 + i);
+const ALL_YEARS = [2022, 2023, 2024, ...PROJ_YEARS];
 
-const fN = n => { if (n >= 1e9) return `${(n / 1e9).toFixed(1)}bn`; if (n >= 1e6) return `${(n / 1e6).toFixed(1)}m`; if (n >= 1e3) return `${(n / 1e3).toFixed(0)}k`; return n.toFixed(0); };
+const fN = n => { if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(1)}bn`; return `${n.toFixed(0)}m`; };
 const fP = n => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(1)}%`;
+const fM = n => `${(n * 100).toFixed(1)}%`;
+const cagr = (s, e, n) => s > 0 && e > 0 && n > 0 ? (Math.pow(e / s, 1 / n) - 1) : 0;
 
-function calcTAM(p) {
-    const units = p.quantity.reduce((a, q) => a * q.value, 1);
-    const arpu = (p.price[0].value + p.price[1].value) * 12 + p.price[2].value;
-    return { units, arpu, tam: (units * arpu) / 1e6 };
-}
-function calcCAGR(p) { return p.cagr.reduce((s, c) => s + c.value, 0); }
+function calcTAM(p) { const u = p.quantity.reduce((a, q) => a * q.v, 1); const ar = (p.price[0].v + p.price[1].v) * 12 + p.price[2].v; return { u, ar, tam: (u * ar) / 1e6 }; }
+function calcCAGR(p) { return p.cagr.reduce((s, c) => s + c.v, 0); }
 
 const bg = "#080e1a", crd = "#0f172a", bdr = "#1e293b", t1 = "#e2e8f0", t2 = "#94a3b8", t3 = "#64748b";
 const Box = ({ children, style }) => <div style={{ background: crd, borderRadius: 8, border: `1px solid ${bdr}`, padding: 14, marginBottom: 10, ...style }}>{children}</div>;
-const Dir = ({ d }) => { const c = d === "Positive" ? "#22c55e" : d === "Negative" ? "#ef4444" : "#f59e0b"; return <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 9, background: `${c}18`, color: c, fontWeight: 600 }}>{d}</span>; };
+const Dir = ({ d }) => { const c = d === "+" ? "#22c55e" : d === "-" ? "#ef4444" : "#f59e0b"; return (<span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 8, background: `${c}18`, color: c, fontWeight: 600 }}>{d === "+" ? "↑" : d === "-" ? "↓" : "~"}</span>); };
 
 const NI = ({ value, onChange, step, w }) => (
     <input type="number" value={value} onChange={e => onChange(parseFloat(e.target.value) || 0)} step={step || 1}
-        style={{ width: w || 85, padding: "3px 5px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", background: "#1e293b", border: "1px solid #334155", borderRadius: 4, color: "#fbbf24", textAlign: "right", outline: "none" }} />
+        style={{ width: w || 80, padding: "3px 5px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", background: "#1e293b", border: "1px solid #334155", borderRadius: 4, color: "#fbbf24", textAlign: "right", outline: "none" }} />
 );
+
+const TABS = ["Actuals & KPIs", "Product Drivers", "Projections & P&L"];
 
 export default function GammaModel() {
     const [tab, setTab] = useState(0);
     const [prods, setProds] = useState(PRODUCTS);
     const [sel, setSel] = useState(0);
-    const [gpm, setGpm] = useState(0.49);
-    const [opx, setOpx] = useState(0.28);
-    const [dna, setDna] = useState(0.04);
-    const [tax, setTax] = useState(0.25);
+    const [gpM, setGpM] = useState(0.543);
+    const [opxR, setOpxR] = useState(0.32);
+    const [taxR, setTaxR] = useState(0.26);
+    const [centralCost, setCentralCost] = useState(26);
 
-    const uQ = useCallback((pi, qi, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], quantity: [...n[pi].quantity] }; x.quantity[qi] = { ...x.quantity[qi], value: v }; n[pi] = x; return n; }), []);
-    const uP = useCallback((pi, qi, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], price: [...n[pi].price] }; x.price[qi] = { ...x.price[qi], value: v }; n[pi] = x; return n; }), []);
-    const uC = useCallback((pi, ci, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], cagr: [...n[pi].cagr] }; x.cagr[ci] = { ...x.cagr[ci], value: v }; n[pi] = x; return n; }), []);
+    const uQ = useCallback((pi, qi, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], quantity: [...n[pi].quantity] }; x.quantity[qi] = { ...x.quantity[qi], v }; n[pi] = x; return n; }), []);
+    const uP = useCallback((pi, qi, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], price: [...n[pi].price] }; x.price[qi] = { ...x.price[qi], v }; n[pi] = x; return n; }), []);
+    const uC = useCallback((pi, ci, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], cagr: [...n[pi].cagr] }; x.cagr[ci] = { ...x.cagr[ci], v }; n[pi] = x; return n; }), []);
 
-    const comp = useMemo(() => prods.map(p => { const r = calcTAM(p); const c = calcCAGR(p); return { ...r, cagr: c, proj: YEARS.map(y => ({ year: y, tam: r.tam * Math.pow(1 + c, y - 2025) })) }; }), [prods]);
-    const totalTAM = comp.reduce((s, c) => s + c.tam, 0);
+    const comp = useMemo(() => prods.map(p => { const r = calcTAM(p); const c = calcCAGR(p); return { ...r, cagr: c }; }), [prods]);
+    const totalModelTAM = comp.reduce((s, c) => s + c.tam, 0);
 
-    const pl = useMemo(() => YEARS.map(y => {
-        let tot = 0; const row = { year: y };
-        prods.forEach((p, i) => { const r = comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025); row[p.id] = r; tot += r; });
-        row.rev = tot; row.gp = tot * gpm; row.opex = tot * opx; row.ebitda = row.gp - row.opex;
-        row.ebitdaM = tot > 0 ? row.ebitda / tot : 0; row.dna = tot * dna; row.ebit = row.ebitda - row.dna;
-        row.tax = Math.max(0, row.ebit * tax); row.ni = row.ebit - row.tax; row.niM = tot > 0 ? row.ni / tot : 0;
-        return row;
-    }), [prods, comp, gpm, opx, dna, tax]);
+    // Build combined actuals + projections P&L
+    const plData = useMemo(() => {
+        const rows = [];
+        // Actuals
+        ACTUALS.group.forEach(a => {
+            const ann = a.period === "H1" ? 2 : 1;
+            rows.push({
+                year: a.year, type: a.period === "H1" ? "H1 actual" : "actual",
+                rev: a.rev * ann, gp: a.gp * ann, gpM: a.gpM,
+                adjEBITDA: a.adjEBITDA * ann, adjPBT: (a.adjPBT || 0) * ann,
+                pbt: (a.pbt || 0) * ann, pat: (a.pat || 0) * ann,
+                adjEps: a.adjEps * ann, eps: a.eps * ann,
+            });
+        });
+        // Projections 2026-2035
+        PROJ_YEARS.slice(1).forEach(y => {
+            let totRev = 0;
+            prods.forEach((p, i) => { const t = y - 2025; totRev += comp[i].tam * Math.pow(1 + comp[i].cagr, t); });
+            const gp = totRev * gpM;
+            const opex = totRev * opxR;
+            const ebitda = gp - opex - centralCost;
+            const dna = totRev * 0.04;
+            const ebit = ebitda - dna;
+            const pbt = ebit;
+            const tax = Math.max(0, pbt * taxR);
+            rows.push({ year: y, type: "projected", rev: totRev, gp, gpM, adjEBITDA: ebitda, pbt, pat: pbt - tax });
+        });
+        return rows;
+    }, [prods, comp, gpM, opxR, taxR, centralCost]);
 
-    const TABS = ["Portfolio Summary", "Product Detail", "P&L Projection"];
+    // Product-level projections
+    const prodProj = useMemo(() => prods.map((p, i) => {
+        return PROJ_YEARS.map(y => ({ year: y, tam: comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025) }));
+    }), [prods, comp]);
+
+    // Stacked revenue data for chart
+    const stackData = useMemo(() => {
+        return PROJ_YEARS.map(y => {
+            const row = { year: y };
+            let tot = 0;
+            prods.forEach((p, i) => { const t = y - 2025; const r = comp[i].tam * Math.pow(1 + comp[i].cagr, t); row[p.id] = r; tot += r; });
+            row.total = tot;
+            return row;
+        });
+    }, [prods, comp]);
+
+    const a = ACTUALS;
 
     return (
         <div style={{ background: bg, color: t1, fontFamily: "'IBM Plex Sans',system-ui,sans-serif", minHeight: "100vh", padding: "10px 12px", fontSize: 13 }}>
@@ -413,8 +213,12 @@ export default function GammaModel() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${bdr}` }}>
                 <div style={{ width: 32, height: 32, borderRadius: 6, background: "linear-gradient(135deg,#6366f1,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: "#fff" }}>Γ</div>
                 <div style={{ flex: 1 }}>
-                    <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>Gamma Communications — Market Model Driver Trees</h1>
-                    <div style={{ fontSize: 10, color: t2 }}>9 solution lines · H1 2025 framework · LON:GAMA · TAM = Qty × ARPU · Year N = TAM₀ × (1+CAGR)ⁿ</div>
+                    <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Gamma Communications PLC — Market Model</h1>
+                    <div style={{ fontSize: 10, color: t2 }}>FY2022–FY2024 Actuals · H1 2025 · 9-Line Driver Tree Projections · LON:GAMA</div>
+                </div>
+                <div style={{ fontSize: 10, color: t3, textAlign: "right" }}>
+                    <div>FY2024 Rev: £579.4m</div>
+                    <div>H1 2025 Rev: £316.6m</div>
                 </div>
             </div>
 
@@ -424,108 +228,218 @@ export default function GammaModel() {
                 ))}
             </div>
 
-            {/* ═══ PORTFOLIO SUMMARY ═══ */}
+            {/* ═══ TAB 0: ACTUALS ═══ */}
             {tab === 0 && (<>
+                {/* Group P&L headline KPIs */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                    {CATS.map(cat => {
-                        const cp = prods.map((p, i) => ({ ...p, i })).filter(p => p.category === cat);
-                        const ct = cp.reduce((s, p) => s + comp[p.i].tam, 0);
-                        const cc = cp.reduce((s, p) => s + comp[p.i].tam * comp[p.i].cagr, 0) / (ct || 1);
-                        return (<Box key={cat} style={{ flex: 1, minWidth: 160, borderTop: `3px solid ${CAT_C[cat]}` }}>
-                            <div style={{ fontSize: 9, color: t2, textTransform: "uppercase", letterSpacing: 1 }}>{cat}</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: CAT_C[cat], margin: "3px 0" }}>£{ct.toFixed(0)}m</div>
-                            <div style={{ fontSize: 10, color: t2 }}>CAGR {fP(cc)} · {cp.length} lines</div>
-                        </Box>);
-                    })}
-                    <Box style={{ flex: 1, minWidth: 160, borderTop: "3px solid #f59e0b" }}>
-                        <div style={{ fontSize: 9, color: t2, textTransform: "uppercase", letterSpacing: 1 }}>Total Portfolio TAM</div>
-                        <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#f59e0b", margin: "3px 0" }}>£{totalTAM.toFixed(0)}m</div>
-                        <div style={{ fontSize: 10, color: t2 }}>2035E: £{pl.find(d => d.year === 2035)?.rev.toFixed(0)}m</div>
-                    </Box>
+                    {[
+                        { l: "FY2024 Revenue", v: "£579.4m", d: "+11% YoY", c: "#3b82f6" },
+                        { l: "FY2024 Gross Margin", v: "51.8%", d: "+60bps YoY", c: "#22c55e" },
+                        { l: "FY2024 Adj. EBITDA", v: "£125.5m", d: "+10% YoY", c: "#f59e0b" },
+                        { l: "H1 2025 Revenue", v: "£316.6m", d: "+12% YoY", c: "#8b5cf6" },
+                        { l: "H1 2025 Adj. EBITDA", v: "£70.9m", d: "+14% YoY", c: "#ec4899" },
+                        { l: "FY2025E Consensus", v: "£139–143m", d: "Adj. EBITDA range", c: "#10b981" },
+                    ].map((k, i) => (
+                        <Box key={i} style={{ flex: 1, minWidth: 130, borderTop: `3px solid ${k.c}`, textAlign: "center", padding: 10 }}>
+                            <div style={{ fontSize: 9, color: t2, textTransform: "uppercase", letterSpacing: 0.8 }}>{k.l}</div>
+                            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: k.c, margin: "3px 0" }}>{k.v}</div>
+                            <div style={{ fontSize: 10, color: t2 }}>{k.d}</div>
+                        </Box>
+                    ))}
                 </div>
 
+                {/* Actual P&L table */}
                 <Box>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600 }}>TAM Projection by Solution Line (£m)</span>
-                        <span style={{ fontSize: 10, color: t2 }}>CAGR-compounded · 2025–2035E</span>
-                    </div>
-                    <ResponsiveContainer width="100%" height={240}>
-                        <AreaChart data={pl} margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
-                            <XAxis dataKey="year" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
-                            <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
-                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`£${v.toFixed(0)}m`]} labelFormatter={l => `FY${l}E`} />
-                            {prods.map(p => <Area key={p.id} type="monotone" dataKey={p.id} stackId="1" fill={p.color} stroke={p.color} fillOpacity={0.75} name={p.name} />)}
-                            <ReferenceLine x={2030} stroke="#ffffff20" strokeDasharray="4 4" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </Box>
-
-                <Box>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Portfolio TAM Driver View</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Group Income Statement — Actuals (£m)</div>
                     <div style={{ overflowX: "auto" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                             <thead><tr style={{ borderBottom: `2px solid ${bdr}` }}>
-                                {["Category", "Solution Line", "TAM Unit", "Units", "ARPU", "TAM (£m)", "CAGR", "Yr3", "Yr5", "Yr10"].map(h => (
-                                    <th key={h} style={{ textAlign: ["Category", "Solution Line", "TAM Unit"].includes(h) ? "left" : "right", padding: "5px 5px", color: t2, fontWeight: 500, fontSize: 10, whiteSpace: "nowrap" }}>{h}</th>
+                                {["", ..."FY2022,FY2023,FY2024,H1 2025,FY2025E ann.".split(",")].map(h => (
+                                    <th key={h} style={{ textAlign: h === "" ? "left" : "right", padding: "5px 6px", color: t2, fontWeight: 500, fontSize: 10, whiteSpace: "nowrap" }}>{h}</th>
                                 ))}
                             </tr></thead>
                             <tbody>
-                                {prods.map((p, i) => {
-                                    const c = comp[i]; return (
-                                        <tr key={p.id} style={{ borderBottom: `1px solid ${bdr}22`, cursor: "pointer" }} onClick={() => { setSel(i); setTab(1); }}>
-                                            <td style={{ padding: "4px 5px", color: CAT_C[p.category], fontSize: 10 }}>{p.category}</td>
-                                            <td style={{ padding: "4px 5px" }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: 2, background: p.color, marginRight: 4, verticalAlign: "middle" }} />{p.name}</td>
-                                            <td style={{ padding: "4px 5px", color: t2, fontSize: 10 }}>{p.tamUnit}</td>
-                                            <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{fN(c.units)}</td>
-                                            <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>£{c.arpu.toFixed(0)}</td>
-                                            <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{c.tam.toFixed(0)}</td>
-                                            <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</td>
-                                            <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 3)).toFixed(0)}</td>
-                                            <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 5)).toFixed(0)}</td>
-                                            <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 10)).toFixed(0)}</td>
-                                        </tr>);
-                                })}
-                                <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
-                                    <td colSpan={3} style={{ padding: "5px 5px" }}>Total Portfolio</td>
-                                    <td /><td />
-                                    <td style={{ textAlign: "right", padding: "5px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalTAM.toFixed(0)}</td>
-                                    <td />
-                                    <td style={{ textAlign: "right", padding: "5px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 3), 0).toFixed(0)}</td>
-                                    <td style={{ textAlign: "right", padding: "5px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 5), 0).toFixed(0)}</td>
-                                    <td style={{ textAlign: "right", padding: "5px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 10), 0).toFixed(0)}</td>
-                                </tr>
+                                {[
+                                    { l: "Revenue", k: [484.6, 521.7, 579.4, 316.6, 633.2], b: true },
+                                    { l: "Cost of Sales", k: [236.9, 254.5, 279.1, 144.6, 289.2], neg: true },
+                                    { l: "Gross Profit", k: [247.7, 267.2, 300.3, 172.0, 344.0], b: true },
+                                    { l: "Gross Margin", k: [0.511, 0.512, 0.518, 0.543, 0.543], pct: true },
+                                    { l: "Operating Expenses", k: [null, 200.2, 210.0, 127.6, 255.2], neg: true },
+                                    { l: "  Exceptional Items", k: [null, 16.0, 0, 7.3, 7.3], indent: true },
+                                    { l: "Profit from Operations", k: [null, 67.0, 90.3, 44.4, 88.8] },
+                                    { l: "Net Finance", k: [null, 4.5, 5.3, -0.9, -1.8] },
+                                    { l: "Profit Before Tax", k: [null, 71.5, 95.6, 43.5, 87.0] },
+                                    { l: "Tax", k: [null, 17.8, 25.8, 11.1, 22.2], neg: true },
+                                    { l: "Profit After Tax", k: [null, 53.7, 69.8, 32.4, 64.8], b: true },
+                                    { l: "", k: [null, null, null, null, null] },
+                                    { l: "Adjusted EBITDA", k: [105.1, 114.3, 125.5, 70.9, 141.8], b: true, hl: true },
+                                    { l: "Adjusted PBT", k: [87.8, 97.9, 111.9, 61.0, 122.0], b: true },
+                                    { l: "Adj. EPS (diluted, pence)", k: [71.8, 75.1, 85.1, 47.9, 95.8] },
+                                    { l: "EPS (diluted, pence)", k: [50.6, 54.9, 72.0, 34.1, 68.2] },
+                                    { l: "", k: [null, null, null, null, null] },
+                                    { l: "Net Cash / (Debt)", k: [92.5, 134.8, 153.7, null, null] },
+                                    { l: "Net Debt", k: [null, null, null, 21.6, null] },
+                                    { l: "Recurring Revenue %", k: [89, 89, 89, 90, 90], pct2: true },
+                                ].map((r, ri) => (
+                                    <tr key={ri} style={{ borderBottom: `1px solid ${bdr}15`, background: r.hl ? "#3b82f608" : "transparent" }}>
+                                        <td style={{ padding: "3px 6px", fontWeight: r.b ? 700 : 400, fontSize: r.indent ? 10 : 11, color: r.indent ? t3 : t1 }}>{r.l}</td>
+                                        {r.k.map((v, vi) => (
+                                            <td key={vi} style={{ textAlign: "right", padding: "3px 6px", fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: r.b ? 600 : 400, color: r.neg ? t2 : v < 0 ? "#ef4444" : t1 }}>
+                                                {v === null ? "—" : r.pct ? fM(v) : r.pct2 ? `${v}%` : v.toFixed(1)}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
-                    <div style={{ fontSize: 10, color: t3, marginTop: 6, fontStyle: "italic" }}>Click any row to open the product driver tree →</div>
+                    <div style={{ fontSize: 9, color: t3, marginTop: 6 }}>FY2025E annualised = H1 2025 × 2 (simple annualisation). Consensus Adj. EBITDA: £139.4–143.1m. Source: Gamma Annual Report 2024, Interim Results H1 2025.</div>
+                </Box>
+
+                {/* Segment performance */}
+                <div style={{ display: "flex", gap: 10 }}>
+                    <Box style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Segment Performance — FY2024 (£m)</div>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                            <thead><tr style={{ borderBottom: `1px solid ${bdr}` }}>
+                                {["Segment", "Revenue", "Gross Profit", "GP%", "Adj.EBITDA"].map(h => (
+                                    <th key={h} style={{ textAlign: h === "Segment" ? "left" : "right", padding: "4px 5px", color: t2, fontWeight: 500, fontSize: 10 }}>{h}</th>
+                                ))}
+                            </tr></thead>
+                            <tbody>
+                                {a.segments[2024].map((s, i) => (
+                                    <tr key={i} style={{ borderBottom: `1px solid ${bdr}15` }}>
+                                        <td style={{ padding: "3px 5px", fontWeight: s.name === "Central" ? 400 : 600 }}>{s.name}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{s.rev || "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{s.gp || "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: t2 }}>{s.gpM ? fM(s.gpM) : "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: s.adjEBITDA < 0 ? "#ef4444" : t1 }}>{s.adjEBITDA.toFixed(1)}</td>
+                                    </tr>
+                                ))}
+                                <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
+                                    <td style={{ padding: "4px 5px" }}>Group</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>579.4</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>300.3</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace", color: t2 }}>51.8%</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>125.5</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </Box>
+                    <Box style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Segment Performance — H1 2025 (£m)</div>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                            <thead><tr style={{ borderBottom: `1px solid ${bdr}` }}>
+                                {["Segment", "Revenue", "GP", "GP%", "Adj.EBITDA"].map(h => (
+                                    <th key={h} style={{ textAlign: h === "Segment" ? "left" : "right", padding: "4px 5px", color: t2, fontWeight: 500, fontSize: 10 }}>{h}</th>
+                                ))}
+                            </tr></thead>
+                            <tbody>
+                                {a.segments["H1 2025"].map((s, i) => (
+                                    <tr key={i} style={{ borderBottom: `1px solid ${bdr}15` }}>
+                                        <td style={{ padding: "3px 5px", fontWeight: s.name === "Central" ? 400 : 600, color: s.name === "Germany" ? "#8b5cf6" : s.name === "Other Europe" ? "#06b6d4" : t1 }}>{s.name}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{s.rev || "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{s.gp || "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: t2 }}>{s.gpM ? fM(s.gpM) : "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: s.adjEBITDA < 0 ? "#ef4444" : t1 }}>{s.adjEBITDA.toFixed(1)}</td>
+                                    </tr>
+                                ))}
+                                <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
+                                    <td style={{ padding: "4px 5px" }}>Group</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>316.6</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>172.0</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace", color: t2 }}>54.3%</td>
+                                    <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>70.9</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </Box>
+                </div>
+
+                {/* Volume metrics */}
+                <Box>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Disclosed Product Volumes ('000s) — Actuals</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
+                        <thead><tr style={{ borderBottom: `1px solid ${bdr}` }}>
+                            {["Metric", "Jun 2024", "Dec 2024", "Jun 2025", "H1 25 Δ"].map(h => (
+                                <th key={h} style={{ textAlign: h === "Metric" ? "left" : "right", padding: "4px 5px", color: t2, fontWeight: 500, fontSize: 9 }}>{h}</th>
+                            ))}
+                        </tr></thead>
+                        <tbody>
+                            {[
+                                { l: "UK Cloud PBX seats", k: "ukCloudPBX" },
+                                { l: "Europe Cloud PBX seats", k: "euCloudPBX" },
+                                { l: "  of which Germany", k: "deCloudSeats" },
+                                { l: "UK SIP (traditional PBX)", k: "ukSIPtrad", decline: true },
+                                { l: "Europe SIP (traditional PBX)", k: "euSIPtrad", decline: true },
+                                { l: "UK SIP (non-Gamma cloud PBX)", k: "ukSIPcloud" },
+                                { l: "UK Voice-enabled Teams", k: "ukTeams" },
+                                { l: "Europe Voice-enabled Teams", k: "euTeams" },
+                                { l: "UK CCaaS seats", k: "ukCCaaS" },
+                            ].map((r, ri) => {
+                                const v = a.volumes;
+                                const jun24 = v["Jun 2024"][r.k];
+                                const dec24 = v["Dec 2024"][r.k];
+                                const jun25 = v["Jun 2025"][r.k];
+                                const h1chg = jun25 && dec24 ? ((jun25 - dec24) / dec24 * 100).toFixed(0) + "%" : "—";
+                                return (
+                                    <tr key={ri} style={{ borderBottom: `1px solid ${bdr}10` }}>
+                                        <td style={{ padding: "3px 5px", color: r.l.startsWith("  ") ? t3 : t1, fontSize: r.l.startsWith("  ") ? 10 : 11 }}>{r.l}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{jun24 || "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{dec24 || "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{jun25 || "—"}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: r.decline ? "#ef4444" : "#22c55e" }}>{h1chg}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 10, color: t2 }}>
+                        <span>Total Cloud Seats: <b style={{ color: "#8b5cf6" }}>1,800k</b></span>
+                        <span>PhoneLine+ Seats: <b style={{ color: "#6366f1" }}>45k</b> (+32% in H1)</span>
+                        <span>Cisco Users: <b style={{ color: "#a855f7" }}>28k</b> (+75% in H1)</span>
+                    </div>
+                </Box>
+
+                {/* Historical chart */}
+                <Box>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Revenue & Adjusted EBITDA — Actuals (£m, full year)</div>
+                    <ResponsiveContainer width="100%" height={180}>
+                        <ComposedChart data={[{ y: "FY22", rev: 484.6, ebitda: 105.1, gp: 247.7 }, { y: "FY23", rev: 521.7, ebitda: 114.3, gp: 267.2 }, { y: "FY24", rev: 579.4, ebitda: 125.5, gp: 300.3 }, { y: "H1'25×2", rev: 633.2, ebitda: 141.8, gp: 344.0 }]} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
+                            <XAxis dataKey="y" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
+                            <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`£${v.toFixed(0)}m`]} />
+                            <Bar dataKey="rev" fill="#3b82f650" name="Revenue" radius={[2, 2, 0, 0]} />
+                            <Line type="monotone" dataKey="gp" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} name="Gross Profit" />
+                            <Line type="monotone" dataKey="ebitda" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} name="Adj. EBITDA" />
+                        </ComposedChart>
+                    </ResponsiveContainer>
                 </Box>
             </>)}
 
-            {/* ═══ PRODUCT DETAIL ═══ */}
+            {/* ═══ TAB 1: PRODUCT DRIVERS ═══ */}
             {tab === 1 && (() => {
                 const p = prods[sel], c = comp[sel];
                 return (<div style={{ display: "flex", gap: 10 }}>
-                    <div style={{ width: 185, flexShrink: 0 }}>
+                    <div style={{ width: 175, flexShrink: 0 }}>
                         <Box style={{ padding: 8 }}>
-                            <div style={{ fontSize: 9, fontWeight: 600, color: t2, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Solution Lines</div>
+                            <div style={{ fontSize: 9, fontWeight: 600, color: t2, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>9 Solution Lines</div>
                             {prods.map((pr, i) => (
-                                <button key={pr.id} onClick={() => setSel(i)} style={{ display: "flex", alignItems: "center", gap: 5, width: "100%", padding: "5px 7px", border: "none", borderRadius: 4, cursor: "pointer", marginBottom: 1, textAlign: "left", background: sel === i ? `${pr.color}20` : "transparent", borderLeft: sel === i ? `3px solid ${pr.color}` : "3px solid transparent", color: sel === i ? t1 : t2, fontSize: 10.5, transition: "all 0.12s" }}>
-                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: pr.color, flexShrink: 0 }} />
+                                <button key={pr.id} onClick={() => setSel(i)} style={{ display: "flex", alignItems: "center", gap: 5, width: "100%", padding: "5px 7px", border: "none", borderRadius: 4, cursor: "pointer", marginBottom: 1, textAlign: "left", background: sel === i ? `${pr.color}20` : "transparent", borderLeft: sel === i ? `3px solid ${pr.color}` : "3px solid transparent", color: sel === i ? t1 : t2, fontSize: 10, transition: "all 0.12s" }}>
+                                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: pr.color, flexShrink: 0 }} />
                                     <span style={{ fontWeight: sel === i ? 600 : 400 }}>{pr.name}</span>
                                 </button>
                             ))}
                         </Box>
                     </div>
-
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <Box style={{ borderTop: `3px solid ${p.color}` }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                                 <div>
-                                    <div style={{ fontSize: 9, color: CAT_C[p.category], fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{p.category}</div>
-                                    <h2 style={{ margin: "2px 0 3px", fontSize: 16, fontWeight: 700, color: p.color }}>{p.name}</h2>
-                                    <div style={{ fontSize: 10, color: t2 }}>{p.scope}</div>
-                                    <div style={{ fontSize: 9, color: t3, marginTop: 3, fontFamily: "'JetBrains Mono',monospace" }}>{p.coreEq}</div>
+                                    <div style={{ fontSize: 9, color: CAT_C[p.cat], fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{p.cat}</div>
+                                    <h2 style={{ margin: "2px 0", fontSize: 16, fontWeight: 700, color: p.color }}>{p.name}</h2>
+                                    <div style={{ fontSize: 9, color: t3, fontFamily: "'JetBrains Mono',monospace" }}>{p.eq}</div>
                                 </div>
                                 <div style={{ textAlign: "right" }}>
                                     <div style={{ fontSize: 9, color: t2 }}>Model TAM</div>
@@ -537,57 +451,47 @@ export default function GammaModel() {
 
                         <div style={{ display: "flex", gap: 10 }}>
                             <Box style={{ flex: 1 }}>
-                                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>1. Quantity Driver Tree</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Quantity Tree</div>
                                 {p.quantity.map((q, qi) => (
-                                    <div key={q.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7, gap: 6 }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 10.5, color: t1 }}>{q.label}</div>
-                                            <div style={{ fontSize: 8.5, color: t3 }}>{q.hint}</div>
-                                        </div>
-                                        <NI value={q.value} onChange={v => uQ(sel, qi, v)} step={q.value >= 1e6 ? 100000 : q.value >= 100 ? 10 : q.value >= 1 ? 0.1 : 0.005} w={q.value >= 1e6 ? 95 : 75} />
+                                    <div key={qi} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 6 }}>
+                                        <div style={{ flex: 1, fontSize: 10.5 }}>{q.l}</div>
+                                        <NI value={q.v} onChange={v => uQ(sel, qi, v)} step={q.v >= 1e6 ? 100000 : q.v >= 100 ? 5 : q.v >= 1 ? 0.1 : 0.005} w={q.v >= 1e6 ? 95 : 70} />
                                     </div>
                                 ))}
-                                <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, marginTop: 2, display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600 }}>
-                                    <span>Addressable billable units</span>
-                                    <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#f59e0b" }}>{fN(c.units)}</span>
+                                <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600 }}>
+                                    <span>Billable units</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#f59e0b" }}>{fN(c.u / 1e6)}</span>
                                 </div>
                             </Box>
                             <Box style={{ flex: 1 }}>
-                                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#22c55e" }}>Price Driver Tree</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#22c55e" }}>Price Tree</div>
                                 {p.price.map((pr, pi) => (
-                                    <div key={pr.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7, gap: 6 }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 10.5, color: t1 }}>{pr.label}</div>
-                                            <div style={{ fontSize: 8.5, color: t3 }}>{pr.hint}</div>
-                                        </div>
-                                        <NI value={pr.value} onChange={v => uP(sel, pi, v)} step={pr.value >= 50 ? 5 : 0.5} w={75} />
+                                    <div key={pi} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 6 }}>
+                                        <div style={{ flex: 1, fontSize: 10.5 }}>{pr.l}</div>
+                                        <NI value={pr.v} onChange={v => uP(sel, pi, v)} step={pr.v >= 50 ? 5 : 0.5} w={70} />
                                     </div>
                                 ))}
-                                <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, marginTop: 2, display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600 }}>
-                                    <span>Effective annual ARPU</span>
-                                    <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#22c55e" }}>£{c.arpu.toFixed(0)}</span>
+                                <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600 }}>
+                                    <span>Annual ARPU</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#22c55e" }}>£{c.ar.toFixed(0)}</span>
                                 </div>
                             </Box>
                         </div>
 
                         <Box>
-                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#3b82f6" }}>2. CAGR Build</div>
+                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#3b82f6" }}>CAGR Build</div>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
                                 {p.cagr.map((cv, ci) => (
-                                    <div key={cv.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5, gap: 6 }}>
-                                        <div style={{ flex: 1, fontSize: 10.5, color: t1 }}>{cv.label}</div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                            <input type="range" min={-0.1} max={0.15} step={0.005} value={cv.value} onChange={e => uC(sel, ci, parseFloat(e.target.value))} style={{ width: 70, accentColor: cv.value >= 0 ? "#22c55e" : "#ef4444" }} />
-                                            <span style={{ width: 45, textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, color: cv.value >= 0 ? "#22c55e" : "#ef4444" }}>{(cv.value * 100).toFixed(1)}%</span>
-                                        </div>
+                                    <div key={ci} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 4 }}>
+                                        <div style={{ flex: 1, fontSize: 10.5 }}>{cv.l}</div>
+                                        <input type="range" min={-0.1} max={0.15} step={0.005} value={cv.v} onChange={e => uC(sel, ci, parseFloat(e.target.value))} style={{ width: 65, accentColor: cv.v >= 0 ? "#22c55e" : "#ef4444" }} />
+                                        <span style={{ width: 42, textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: cv.v >= 0 ? "#22c55e" : "#ef4444" }}>{(cv.v * 100).toFixed(1)}%</span>
                                     </div>
                                 ))}
                             </div>
-                            <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <span style={{ fontSize: 12, fontWeight: 600 }}>Model CAGR</span>
                                 <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</span>
                             </div>
-                            <div style={{ display: "flex", gap: 14, marginTop: 5, fontSize: 10, color: t2 }}>
+                            <div style={{ display: "flex", gap: 14, marginTop: 4, fontSize: 10, color: t2 }}>
                                 <span>Yr3: <b style={{ color: t1 }}>£{(c.tam * Math.pow(1 + c.cagr, 3)).toFixed(0)}m</b></span>
                                 <span>Yr5: <b style={{ color: t1 }}>£{(c.tam * Math.pow(1 + c.cagr, 5)).toFixed(0)}m</b></span>
                                 <span>Yr10: <b style={{ color: t1 }}>£{(c.tam * Math.pow(1 + c.cagr, 10)).toFixed(0)}m</b></span>
@@ -596,8 +500,8 @@ export default function GammaModel() {
 
                         <Box>
                             <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>TAM Projection</div>
-                            <ResponsiveContainer width="100%" height={140}>
-                                <AreaChart data={c.proj} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+                            <ResponsiveContainer width="100%" height={130}>
+                                <AreaChart data={prodProj[sel]} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
                                     <defs><linearGradient id={`g${sel}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={p.color} stopOpacity={0.4} /><stop offset="95%" stopColor={p.color} stopOpacity={0.05} /></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
                                     <XAxis dataKey="year" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
@@ -608,96 +512,106 @@ export default function GammaModel() {
                             </ResponsiveContainer>
                         </Box>
 
-                        <div style={{ display: "flex", gap: 10 }}>
-                            <Box style={{ flex: 1 }}>
-                                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>3. Key Drivers / Headwinds</div>
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
-                                    <thead><tr style={{ borderBottom: `1px solid ${bdr}` }}>
-                                        {["Bucket", "Driver", "Dir."].map(h => <th key={h} style={{ textAlign: "left", padding: "3px 5px", color: t2, fontWeight: 500, fontSize: 9 }}>{h}</th>)}
-                                    </tr></thead>
-                                    <tbody>{p.drivers.map((d, di) => (
-                                        <tr key={di} style={{ borderBottom: `1px solid ${bdr}10` }}>
-                                            <td style={{ padding: "3px 5px", color: t2, fontSize: 9, whiteSpace: "nowrap" }}>{d.bucket}</td>
-                                            <td style={{ padding: "3px 5px" }}>{d.driver}</td>
-                                            <td style={{ padding: "3px 5px" }}><Dir d={d.dir} /></td>
-                                        </tr>
-                                    ))}</tbody>
-                                </table>
-                            </Box>
-                            <Box style={{ flex: 1 }}>
-                                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>4. Disclosed Anchors (H1 2025)</div>
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
-                                    <thead><tr style={{ borderBottom: `1px solid ${bdr}` }}>
-                                        {["Metric", "Value", "Src"].map(h => <th key={h} style={{ textAlign: "left", padding: "3px 5px", color: t2, fontWeight: 500, fontSize: 9 }}>{h}</th>)}
-                                    </tr></thead>
-                                    <tbody>{p.anchors.map((a, ai) => (
-                                        <tr key={ai} style={{ borderBottom: `1px solid ${bdr}10` }}>
-                                            <td style={{ padding: "3px 5px", color: t2, fontSize: 9.5 }}>{a.metric}</td>
-                                            <td style={{ padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, color: "#fbbf24" }}>{a.value}</td>
-                                            <td style={{ padding: "3px 5px", fontSize: 9, color: t3 }}>{a.src}</td>
-                                        </tr>
-                                    ))}</tbody>
-                                </table>
-                                <div style={{ marginTop: 4 }}>{p.anchors.map((a, i) => <div key={i} style={{ fontSize: 8.5, color: t3, marginBottom: 1 }}>{a.src}: {a.why}</div>)}</div>
-                            </Box>
-                        </div>
+                        <Box>
+                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Disclosed Anchors (H1 2025)</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                {p.anchors.map((an, ai) => (
+                                    <div key={ai} style={{ background: "#1a2744", borderRadius: 6, padding: "6px 10px", flex: "1 1 140px" }}>
+                                        <div style={{ fontSize: 9, color: t2 }}>{an.m}</div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#fbbf24" }}>{an.v}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Box>
                     </div>
                 </div>);
             })()}
 
-            {/* ═══ P&L PROJECTION ═══ */}
+            {/* ═══ TAB 2: PROJECTIONS ═══ */}
             {tab === 2 && (<>
                 <Box>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Group P&L Assumptions</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Projection Assumptions (applied to model TAM)</div>
                     <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-                        {[{ l: "Blended GP Margin", v: gpm, s: setGpm, mn: 0.2, mx: 0.7 }, { l: "OpEx % Revenue", v: opx, s: setOpx, mn: 0.1, mx: 0.5 }, { l: "D&A % Revenue", v: dna, s: setDna, mn: 0.01, mx: 0.1 }, { l: "Tax Rate", v: tax, s: setTax, mn: 0.15, mx: 0.35 }].map(x => (
-                            <div key={x.l} style={{ flex: 1, minWidth: 130 }}>
+                        {[{ l: "Blended GP Margin", v: gpM, s: setGpM, mn: 0.4, mx: 0.65 }, { l: "OpEx % Revenue", v: opxR, s: setOpxR, mn: 0.2, mx: 0.45 }, { l: "Tax Rate", v: taxR, s: setTaxR, mn: 0.2, mx: 0.35 }, { l: "Central Costs (£m)", v: centralCost, s: setCentralCost, mn: 10, mx: 40, abs: true }].map(x => (
+                            <div key={x.l} style={{ flex: 1, minWidth: 120 }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: t2, marginBottom: 2 }}>
-                                    <span>{x.l}</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#fbbf24" }}>{(x.v * 100).toFixed(1)}%</span>
+                                    <span>{x.l}</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#fbbf24" }}>{x.abs ? `£${x.v}m` : fM(x.v)}</span>
                                 </div>
-                                <input type="range" min={x.mn} max={x.mx} step={0.005} value={x.v} onChange={e => x.s(parseFloat(e.target.value))} style={{ width: "100%", accentColor: "#3b82f6" }} />
+                                <input type="range" min={x.mn} max={x.mx} step={x.abs ? 1 : 0.005} value={x.v} onChange={e => x.s(parseFloat(e.target.value))} style={{ width: "100%", accentColor: "#3b82f6" }} />
                             </div>
                         ))}
                     </div>
                 </Box>
 
-                <div style={{ display: "flex", gap: 10 }}>
-                    <Box style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Revenue & EBITDA (£m)</div>
-                        <ResponsiveContainer width="100%" height={180}>
-                            <ComposedChart data={pl} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
-                                <XAxis dataKey="year" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
-                                <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
-                                <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`£${v.toFixed(0)}m`]} labelFormatter={l => `FY${l}E`} />
-                                <Bar dataKey="rev" fill="#3b82f650" name="Revenue" radius={[2, 2, 0, 0]} />
-                                <Line type="monotone" dataKey="ebitda" stroke="#f59e0b" strokeWidth={2} dot={false} name="EBITDA" />
-                                <Line type="monotone" dataKey="ni" stroke="#22c55e" strokeWidth={2} dot={false} name="Net Income" />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </Box>
-                    <Box style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Margin Evolution</div>
-                        <ResponsiveContainer width="100%" height={180}>
-                            <LineChart data={pl} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
-                                <XAxis dataKey="year" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
-                                <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${(v * 100).toFixed(0)}%`} />
-                                <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`${(v * 100).toFixed(1)}%`]} labelFormatter={l => `FY${l}E`} />
-                                <Line type="monotone" dataKey="ebitdaM" stroke="#f59e0b" strokeWidth={2} dot={false} name="EBITDA Margin" />
-                                <Line type="monotone" dataKey="niM" stroke="#22c55e" strokeWidth={2} dot={false} name="Net Margin" />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </Box>
-                </div>
-
                 <Box>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Modelled Income Statement (£m)</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600 }}>Actuals + Modelled Revenue by Product (£m)</span>
+                        <span style={{ fontSize: 10, color: t2 }}>FY22–24 actual bars · FY25E–35E driver-tree projection</span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={240}>
+                        <ComposedChart data={[
+                            { year: "FY22", actual: 484.6 }, { year: "FY23", actual: 521.7 }, { year: "FY24", actual: 579.4 }, { year: "H1'25×2", actual: 633.2 },
+                            ...stackData.map(d => ({ year: `${d.year}E`, ...d, modelled: d.total }))
+                        ]} margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
+                            <XAxis dataKey="year" tick={{ fill: t2, fontSize: 9 }} tickLine={false} />
+                            <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => v ? [`£${v.toFixed(0)}m`] : null} labelFormatter={l => l} />
+                            <Bar dataKey="actual" fill="#ffffff30" name="Actual Revenue" radius={[2, 2, 0, 0]} />
+                            {prods.map(p => <Area key={p.id} type="monotone" dataKey={p.id} stackId="1" fill={p.color} stroke={p.color} fillOpacity={0.7} name={p.name} />)}
+                            <ReferenceLine x="2030E" stroke="#ffffff20" strokeDasharray="4 4" />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </Box>
+
+                {/* Model summary table */}
+                <Box>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Product TAM Summary — Model vs Actual</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
+                        <thead><tr style={{ borderBottom: `2px solid ${bdr}` }}>
+                            {["Product", "TAM £m", "CAGR", "FY28E", "FY30E", "FY35E", "Category"].map(h => (
+                                <th key={h} style={{ textAlign: h === "Product" || h === "Category" ? "left" : "right", padding: "4px 5px", color: t2, fontWeight: 500, fontSize: 9 }}>{h}</th>
+                            ))}
+                        </tr></thead>
+                        <tbody>
+                            {prods.map((p, i) => {
+                                const c = comp[i]; return (
+                                    <tr key={p.id} style={{ borderBottom: `1px solid ${bdr}15` }}>
+                                        <td style={{ padding: "3px 5px" }}><span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 2, background: p.color, marginRight: 4, verticalAlign: "middle" }} />{p.name}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{c.tam.toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 3)).toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 5)).toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.tam * Math.pow(1 + c.cagr, 10)).toFixed(0)}</td>
+                                        <td style={{ padding: "3px 5px", color: CAT_C[p.cat], fontSize: 9 }}>{p.cat}</td>
+                                    </tr>);
+                            })}
+                            <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
+                                <td style={{ padding: "4px 5px" }}>Total Model TAM</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalModelTAM.toFixed(0)}</td>
+                                <td />
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 3), 0).toFixed(0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 5), 0).toFixed(0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, 10), 0).toFixed(0)}</td>
+                                <td />
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style={{ fontSize: 10, color: t2, marginTop: 6, display: "flex", gap: 16 }}>
+                        <span>FY2024 Actual Revenue: <b style={{ color: "#f59e0b" }}>£579.4m</b></span>
+                        <span>Model TAM (base year): <b style={{ color: "#3b82f6" }}>£{totalModelTAM.toFixed(0)}m</b></span>
+                        <span>Calibration ratio: <b style={{ color: t1 }}>{(579.4 / totalModelTAM).toFixed(2)}x</b></span>
+                    </div>
+                </Box>
+
+                {/* Projected P&L */}
+                <Box>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Modelled P&L — Projected (£m)</div>
                     <div style={{ overflowX: "auto" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, fontFamily: "'JetBrains Mono',monospace" }}>
                             <thead><tr style={{ borderBottom: `2px solid ${bdr}` }}>
-                                <th style={{ textAlign: "left", padding: "5px 5px", fontFamily: "'IBM Plex Sans',sans-serif", color: t2, fontWeight: 500, fontSize: 10 }}>Line Item</th>
-                                {YEARS.map(y => <th key={y} style={{ textAlign: "right", padding: "5px 3px", color: t2, fontWeight: 500, fontSize: 9 }}>FY{y}E</th>)}
+                                <th style={{ textAlign: "left", padding: "5px 5px", fontFamily: "'IBM Plex Sans',sans-serif", color: t2, fontWeight: 500, fontSize: 9 }}>Line Item</th>
+                                {PROJ_YEARS.map(y => <th key={y} style={{ textAlign: "right", padding: "5px 3px", color: t2, fontWeight: 500, fontSize: 9 }}>FY{y}E</th>)}
                             </tr></thead>
                             <tbody>
                                 {prods.map((pr, i) => (
@@ -705,38 +619,43 @@ export default function GammaModel() {
                                         <td style={{ padding: "2px 5px", fontFamily: "'IBM Plex Sans',sans-serif", fontSize: 10, color: t2 }}>
                                             <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: 1, background: pr.color, marginRight: 3, verticalAlign: "middle" }} />{pr.name}
                                         </td>
-                                        {YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{pl.find(r => r.year === y)[pr.id].toFixed(0)}</td>)}
+                                        {PROJ_YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{(comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025)).toFixed(0)}</td>)}
                                     </tr>
                                 ))}
                                 {[
                                     { k: "rev", l: "Total Revenue", b: true, sep: true },
                                     { k: "gp", l: "Gross Profit" },
-                                    { k: "opex", l: "OpEx", neg: true },
-                                    { k: "ebitda", l: "EBITDA", b: true },
-                                    { k: "dna", l: "D&A", neg: true },
-                                    { k: "ebit", l: "EBIT" },
-                                    { k: "tax", l: "Tax", neg: true },
-                                    { k: "ni", l: "Net Income", b: true, hl: true },
-                                ].map((r, ri) => (
-                                    <tr key={ri} style={{ borderTop: r.sep ? `2px solid ${bdr}` : `1px solid ${bdr}15`, background: r.hl ? "#3b82f608" : "transparent" }}>
-                                        <td style={{ padding: "3px 5px", fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: r.b ? 700 : 400, fontSize: 11 }}>{r.l}</td>
-                                        {YEARS.map(y => { const v = pl.find(d => d.year === y)[r.k]; return <td key={y} style={{ textAlign: "right", padding: "3px 3px", fontWeight: r.b ? 600 : 400, color: r.neg ? t2 : v < 0 ? "#ef4444" : t1 }}>{v.toFixed(0)}</td>; })}
-                                    </tr>
-                                ))}
+                                    { k: "adjEBITDA", l: "Adj. EBITDA", b: true, hl: true },
+                                    { k: "pbt", l: "PBT" },
+                                    { k: "pat", l: "Net Income", b: true },
+                                ].map((r, ri) => {
+                                    const getVal = (y) => {
+                                        let tot = 0; prods.forEach((p, i) => { tot += comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025); });
+                                        const gp = tot * gpM; const ebitda = gp - tot * opxR - centralCost; const pbt2 = ebitda - tot * 0.04;
+                                        return { rev: tot, gp, adjEBITDA: ebitda, pbt: pbt2, pat: pbt2 - Math.max(0, pbt2 * taxR) }[r.k];
+                                    };
+                                    return (
+                                        <tr key={ri} style={{ borderTop: r.sep ? `2px solid ${bdr}` : `1px solid ${bdr}15`, background: r.hl ? "#3b82f608" : "transparent" }}>
+                                            <td style={{ padding: "3px 5px", fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: r.b ? 700 : 400, fontSize: 11 }}>{r.l}</td>
+                                            {PROJ_YEARS.map(y => { const v = getVal(y); return (<td key={y} style={{ textAlign: "right", padding: "3px 3px", fontWeight: r.b ? 600 : 400, color: v < 0 ? "#ef4444" : t1 }}>{v.toFixed(0)}</td>); })}
+                                        </tr>);
+                                })}
                             </tbody>
                         </table>
                     </div>
                 </Box>
 
+                {/* CAGR summary */}
                 <div style={{ display: "flex", gap: 10 }}>
-                    {[{ l: "3-Year (→2028)", n: 3 }, { l: "5-Year (→2030)", n: 5 }, { l: "10-Year (→2035)", n: 10 }].map(h => {
-                        const s = pl[0], e = pl[h.n]; if (!e) return null;
-                        const rc = s.rev > 0 ? Math.pow(e.rev / s.rev, 1 / h.n) - 1 : 0;
-                        const nc = s.ni > 0 && e.ni > 0 ? Math.pow(e.ni / s.ni, 1 / h.n) - 1 : null;
+                    {[{ l: "3-Year (→FY2028)", n: 3 }, { l: "5-Year (→FY2030)", n: 5 }, { l: "10-Year (→FY2035)", n: 10 }].map(h => {
+                        const revBase = totalModelTAM; const revEnd = comp.reduce((s, c) => s + c.tam * Math.pow(1 + c.cagr, h.n), 0);
+                        const rc = cagr(revBase, revEnd, h.n);
+                        const getEbitda = (y) => { let tot = 0; prods.forEach((p, i) => { tot += comp[i].tam * Math.pow(1 + comp[i].cagr, y - 2025); }); return tot * gpM - tot * opxR - centralCost; };
+                        const eb = getEbitda(2025); const ee = getEbitda(2025 + h.n); const ec = cagr(eb, ee, h.n);
                         return (<Box key={h.l} style={{ flex: 1 }}>
                             <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: "#3b82f6" }}>{h.l}</div>
-                            {[{ l: "Revenue CAGR", v: fP(rc), c: rc >= 0 ? "#22c55e" : "#ef4444" }, { l: "Net Income CAGR", v: nc !== null ? fP(nc) : "n/a", c: (nc || 0) >= 0 ? "#22c55e" : "#ef4444" }, { l: `FY${2025 + h.n} Revenue`, v: `£${e.rev.toFixed(0)}m`, c: t1 }, { l: `FY${2025 + h.n} Net Income`, v: `£${e.ni.toFixed(0)}m`, c: t1 }].map(x => (
-                                <div key={x.l} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 11 }}>
+                            {[{ l: "Revenue CAGR", v: fP(rc), c: rc >= 0 ? "#22c55e" : "#ef4444" }, { l: "EBITDA CAGR", v: fP(ec), c: ec >= 0 ? "#22c55e" : "#ef4444" }, { l: `FY${2025 + h.n}E Revenue`, v: `£${revEnd.toFixed(0)}m`, c: t1 }, { l: `FY${2025 + h.n}E EBITDA`, v: `£${ee.toFixed(0)}m`, c: t1 }].map(x => (
+                                <div key={x.l} style={{ display: "flex", justifyContent: "space-between", marginBottom: 3, fontSize: 11 }}>
                                     <span style={{ color: t2 }}>{x.l}</span>
                                     <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, color: x.c }}>{x.v}</span>
                                 </div>
@@ -747,9 +666,9 @@ export default function GammaModel() {
             </>)}
 
             <div style={{ marginTop: 10, padding: "6px 10px", background: "#0a0e18", border: `1px solid ${bdr}`, borderRadius: 5 }}>
-                <div style={{ fontSize: 8, color: "#f59e0b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Framework Disclaimer</div>
+                <div style={{ fontSize: 8, color: "#f59e0b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Sources & Disclaimer</div>
                 <div style={{ fontSize: 8.5, color: t3, lineHeight: 1.5 }}>
-                    Driver-tree modelling framework based on Gamma's H1 2025 investor presentation (9 solution lines). Inputs are editable assumptions — not externally validated TAM estimates. Disclosed anchors sourced from Interim Results and Investor Presentation for H1 2025. All projections are model-generated. Blue/yellow inputs = editable; black = formulas. Not for distribution.
+                    Actuals: Gamma Annual Report FY2024, Interim Results H1 2025 (9 Sep 2025). Segment data: FY2023 and FY2024 use the legacy 3-segment structure (Business/Enterprise/Europe); H1 2025 uses 5-segment structure (Business/Enterprise/Germany/Other Europe/Central). Product driver trees from Gamma H1 2025 investor presentation (9 solution lines). Projections are model-generated using editable assumptions — not validated TAM estimates or company guidance. FY2025E consensus Adj. EBITDA: £139.4–143.1m, Adj. EPS: 89.9–93.9p. Not investment advice. Not for distribution.
                 </div>
             </div>
         </div>
