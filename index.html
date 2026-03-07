@@ -26,31 +26,111 @@
             background: #f4f4f9;
         }
 
-        #top-bar {
-            padding: 12px 20px;
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 0;
+        #panel-toggle-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(108, 61, 255, 0.9);
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        #panel-toggle-btn:hover {
+            background: rgba(90, 43, 209, 1);
+            transform: scale(1.05);
+        }
+
+        #panel-toggle-btn.hidden {
+            display: none;
+        }
+
+        #top-bar {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(224, 224, 224, 0.5);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
+            width: max-content;
+            max-width: calc(100vw - 48px);
+        }
+
+        #top-bar.hidden {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px) scale(0.95);
+            pointer-events: none;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding-bottom: 8px;
+            margin-bottom: 4px;
+        }
+
+        .panel-header span {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+
+        #minimize-btn {
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0 4px;
+            line-height: 1;
+            transition: color 0.2s;
+            margin: 0;
+        }
+
+        #minimize-btn:hover {
+            color: #000;
+        }
+
+        .panel-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         #top-bar select,
         #top-bar input {
             padding: 8px 12px;
-            border: 1px solid #ccc;
+            border: 1px solid rgba(0, 0, 0, 0.15);
             border-radius: 6px;
             font-size: 14px;
+            background: rgba(255, 255, 255, 0.9);
         }
 
-
-
-        #top-bar button {
+        #top-bar button:not(#minimize-btn) {
             padding: 8px 16px;
             background: #6c3dff;
             color: white;
@@ -62,7 +142,7 @@
             transition: background 0.2s;
         }
 
-        #top-bar button:hover {
+        #top-bar button:not(#minimize-btn):hover {
             background: #5a2bd1;
         }
 
@@ -87,7 +167,8 @@
         }
 
         #root {
-            min-height: calc(100vh - 61px);
+            min-height: 100vh;
+            padding-bottom: 100px;
         }
 
         .error-message {
@@ -110,16 +191,25 @@
 </head>
 
 <body>
-    <div id="top-bar">
-        <label for="jsx-select" style="font-weight: 500; font-size: 14px; color: #333;">Load Component:</label>
-        <select id="jsx-select">
-            <option value="truelayer-calculator-reverse-engineered.jsx">truelayer-calculator-reverse-engineered.jsx
-            </option>
-            <option value="gammamodel.jsx">gammamodel.jsx</option>
-        </select>
-        <button id="reset-btn" type="button">Reset</button>
+    <button id="panel-toggle-btn" title="Open Controls">⚙️</button>
+    <div id="top-bar" class="hidden">
+        <div class="panel-header">
+            <span>Controls</span>
+            <button id="minimize-btn" title="Minimize">&minus;</button>
+        </div>
+        <div class="panel-row">
+            <label for="jsx-select" style="font-weight: 500; font-size: 14px; color: #333;">Load Component:</label>
+            <select id="jsx-select">
+                <option value="truelayer-calculator-reverse-engineered.jsx">truelayer-calculator-reverse-engineered.jsx
+                </option>
+                <option value="gammamodel.jsx">gammamodel.jsx</option>
+            </select>
+        </div>
+        <div class="panel-row" style="justify-content: flex-start; gap: 8px;">
+            <button id="reset-btn" type="button">Reset</button>
+            <button id="copy-link-btn" type="button">Copy Link</button>
+        </div>
         <input type="text" id="share-url" readonly placeholder="Shareable link will appear here" />
-        <button id="copy-link-btn" type="button">Copy Link</button>
     </div>
     <div id="root"></div>
 
@@ -153,6 +243,20 @@
         const resetBtn = document.getElementById('reset-btn');
         const shareUrlEl = document.getElementById('share-url');
         const copyLinkBtn = document.getElementById('copy-link-btn');
+
+        const topBar = document.getElementById('top-bar');
+        const panelToggleBtn = document.getElementById('panel-toggle-btn');
+        const minimizeBtn = document.getElementById('minimize-btn');
+
+        panelToggleBtn.addEventListener('click', () => {
+            topBar.classList.remove('hidden');
+            panelToggleBtn.classList.add('hidden');
+        });
+
+        minimizeBtn.addEventListener('click', () => {
+            topBar.classList.add('hidden');
+            panelToggleBtn.classList.remove('hidden');
+        });
 
         let currentFile = null;
         let currentComponent = null;
