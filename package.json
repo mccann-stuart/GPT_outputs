@@ -1,21 +1,15 @@
 {
-  "name": "app",
+  "name": "gpt-outputs",
   "version": "1.0.0",
   "description": "Deliverables as code",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test-gammamodel-logic.mjs && node test-truelayer-logic.mjs && node test_clone.mjs",
+    "test:gamma": "node test-gammamodel-logic.mjs",
+    "test:truelayer": "node test-truelayer-logic.mjs",
+    "test:clone": "node test_clone.mjs",
+    "bench:clone": "node benchmark_clone.mjs"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mccann-stuart/GPT_outputs.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/mccann-stuart/GPT_outputs/issues"
-  },
-  "homepage": "https://github.com/mccann-stuart/GPT_outputs#readme"
+  "license": "ISC"
 }
