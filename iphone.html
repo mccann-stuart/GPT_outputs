@@ -375,6 +375,21 @@
             }
         }
 
+        function getStateFromUrl(urlLike) {
+            const searchParams = new URL(urlLike, window.location.origin).searchParams;
+            const sharedState = parseSharedState(searchParams.get(SHARE_PARAM));
+            const fileParam = searchParams.get('file');
+            const requestedFile = sharedState?.file || fileParam || DEFAULT_FILE;
+            const initialFile = ALLOWED_FILES.includes(requestedFile) ? requestedFile : DEFAULT_FILE;
+            const initialOverrides = initialFile === sharedState?.file
+                ? (sharedState?.overrides || {})
+                : {};
+            return {
+                initialFile,
+                initialOverrides
+            };
+        }
+
         function updateFileInputs(filename) {
             const hasOption = Array.from(selectEl.options).some((opt) => opt.value === filename);
             if (hasOption) {
@@ -569,12 +584,16 @@
             }
         });
 
+        window.addEventListener('popstate', () => {
+            const { initialFile, initialOverrides } = getStateFromUrl(window.location.href);
+            loadJSX(initialFile, {
+                initialSettingsOverrides: initialOverrides,
+                pushHistory: false
+            });
+        });
+
         // Initialize from URL param or default
-        const urlParams = new URLSearchParams(window.location.search);
-        const sharedState = parseSharedState(urlParams.get(SHARE_PARAM));
-        const fileParam = urlParams.get('file');
-        const initialFile = sharedState?.file || fileParam || DEFAULT_FILE;
-        const initialOverrides = sharedState?.overrides || {};
+        const { initialFile, initialOverrides } = getStateFromUrl(window.location.href);
 
         updateFileInputs(initialFile);
         loadJSX(initialFile, {
