@@ -347,22 +347,28 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     <div style={{ fontSize: 9, color: CAT_C[p.cat], fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{p.cat}</div>
                                     <h2 style={{ margin: "2px 0", fontSize: 16, fontWeight: 700, color: p.color }}>{p.name}</h2>
                                     <div style={{ fontSize: 9, color: t3, fontFamily: "'JetBrains Mono',monospace" }}>{p.eq}</div>
+                                </div>
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "stretch", marginTop: 8 }}>
+                                <div style={{ flex: 1, minWidth: 250, marginRight: 16 }}>
                                     {p.bcg && (
-                                        <div style={{ marginTop: 8, padding: "4px 8px", background: "#f8fafc08", borderLeft: `3px solid #10b981`, borderRadius: "0 4px 4px 0", fontSize: 10, color: t1, maxWidth: 350 }}>
+                                        <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid #10b981`, borderRadius: "0 4px 4px 0", fontSize: 10, color: t1, display: "inline-block", maxWidth: 400 }}>
                                             <span style={{ fontWeight: 600, color: "#10b981", marginRight: 4 }}>BCG Hypothesis:</span>
                                             {p.bcg}
                                         </div>
                                     )}
                                 </div>
-                                <div style={{ textAlign: "right", display: "flex", gap: 24, alignItems: "flex-end" }}>
-                                    <div style={{ textAlign: "right" }}>
+                                <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexShrink: 0 }}>
+                                    <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid ${t3}`, borderRadius: "0 4px 4px 0", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 90 }}>
                                         <div style={{ fontSize: 9, color: t2 }}>Model TAM</div>
-                                        <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: t2, marginBottom: 1 }}>£{c.tam.toFixed(0)}m</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: t2, marginTop: 2 }}>£{c.tam.toFixed(0)}m</div>
                                     </div>
-                                    <div style={{ textAlign: "right" }}>
+                                    <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid ${p.color}`, borderRadius: "0 4px 4px 0", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 100 }}>
                                         <div style={{ fontSize: 9, color: t2 }}>Model SOM</div>
-                                        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: p.color }}>£{c.som.toFixed(0)}m</div>
-                                        <div style={{ fontSize: 11, color: c.cagr >= 0 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>CAGR {fP(c.cagr)}</div>
+                                        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 2 }}>
+                                            <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: p.color }}>£{c.som.toFixed(0)}m</span>
+                                            <span style={{ fontSize: 10, color: c.cagr >= 0 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>CAGR {fP(c.cagr)}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
