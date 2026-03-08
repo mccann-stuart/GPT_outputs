@@ -140,8 +140,8 @@ export function calcCAGR(p) { return p.cagr.reduce((s, c) => s + c.v, 0); }
 
 export const DEFAULT_SETTINGS = {
     prods: PRODUCTS,
-    gpM: 0.543,
-    opxR: 0.32,
+    gpM: 0.49,
+    opxR: 0.33,
     taxR: 0.26,
     centralCost: 26,
 };
