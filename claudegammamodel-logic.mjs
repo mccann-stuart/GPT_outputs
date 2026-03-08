@@ -172,7 +172,24 @@ export function resolveInitialSettings(input = {}) {
     const opxR = Number.isFinite(Number(input.opxR)) ? Number(input.opxR) : DEFAULT_SETTINGS.opxR;
     const taxR = Number.isFinite(Number(input.taxR)) ? Number(input.taxR) : DEFAULT_SETTINGS.taxR;
     const centralCost = Number.isFinite(Number(input.centralCost)) ? Number(input.centralCost) : DEFAULT_SETTINGS.centralCost;
-    const prods = input.prods ? input.prods : DEFAULT_SETTINGS.prods;
+    const inputProds = Array.isArray(input.prods) ? input.prods : null;
+    const prods = inputProds
+        ? PRODUCTS.map((defaultProd, index) => {
+            const matchingProd = inputProds.find(p => p?.id === defaultProd.id) || inputProds[index];
+            if (!matchingProd) {
+                return defaultProd;
+            }
+
+            return {
+                ...defaultProd,
+                ...matchingProd,
+                quantity: Array.isArray(matchingProd.quantity) ? matchingProd.quantity : defaultProd.quantity,
+                price: Array.isArray(matchingProd.price) ? matchingProd.price : defaultProd.price,
+                cagr: Array.isArray(matchingProd.cagr) ? matchingProd.cagr : defaultProd.cagr,
+                anchors: Array.isArray(matchingProd.anchors) ? matchingProd.anchors : defaultProd.anchors,
+            };
+        })
+        : DEFAULT_SETTINGS.prods;
 
     return { prods, gpM, opxR, taxR, centralCost };
 }
