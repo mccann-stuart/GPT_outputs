@@ -350,7 +350,13 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                 </div>
                             </div>
                             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "stretch", marginTop: 8 }}>
-                                <div style={{ flex: 1, minWidth: 250, marginRight: 16 }}>
+                                <div style={{ flex: 1, minWidth: 250, marginRight: 16, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                    {p.businessLineExplanation && (
+                                        <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid #10b981`, borderRadius: "0 4px 4px 0", fontSize: 10, color: t1, display: "inline-block", maxWidth: 420 }}>
+                                            <span style={{ fontWeight: 600, color: "#10b981", marginRight: 4 }}>Business Line explanation:</span>
+                                            {p.businessLineExplanation}
+                                        </div>
+                                    )}
                                     {p.bcg && (
                                         <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid #10b981`, borderRadius: "0 4px 4px 0", fontSize: 10, color: t1, display: "inline-block", maxWidth: 400 }}>
                                             <span style={{ fontWeight: 600, color: "#10b981", marginRight: 4 }}>BCG Hypothesis:</span>
