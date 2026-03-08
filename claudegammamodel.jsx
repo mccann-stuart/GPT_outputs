@@ -347,6 +347,12 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     <div style={{ fontSize: 9, color: CAT_C[p.cat], fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{p.cat}</div>
                                     <h2 style={{ margin: "2px 0", fontSize: 16, fontWeight: 700, color: p.color }}>{p.name}</h2>
                                     <div style={{ fontSize: 9, color: t3, fontFamily: "'JetBrains Mono',monospace" }}>{p.eq}</div>
+                                    {p.bcg && (
+                                        <div style={{ marginTop: 8, padding: "4px 8px", background: "#f8fafc08", borderLeft: `3px solid #10b981`, borderRadius: "0 4px 4px 0", fontSize: 10, color: t1, maxWidth: 350 }}>
+                                            <span style={{ fontWeight: 600, color: "#10b981", marginRight: 4 }}>BCG Hypothesis:</span>
+                                            {p.bcg}
+                                        </div>
+                                    )}
                                 </div>
                                 <div style={{ textAlign: "right", display: "flex", gap: 24, alignItems: "flex-end" }}>
                                     <div style={{ textAlign: "right" }}>
