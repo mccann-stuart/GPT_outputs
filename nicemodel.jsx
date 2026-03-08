@@ -24,9 +24,20 @@ const bg = "#080e1a", crd = "#0f172a", bdr = "#1e293b", t1 = "#e2e8f0", t2 = "#9
 const Box = ({ children, style }) => <div style={{ background: crd, borderRadius: 8, border: `1px solid ${bdr}`, padding: 14, marginBottom: 10, ...style }}>{children}</div>;
 const Dir = ({ d }) => { const c = d === "+" ? "#22c55e" : d === "-" ? "#ef4444" : "#f59e0b"; return (<span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 8, background: `${c}18`, color: c, fontWeight: 600 }}>{d === "+" ? "↑" : d === "-" ? "↓" : "~"}</span>); };
 
-const NI = ({ value, onChange, step, w }) => (
-    <input type="number" value={value} onChange={e => onChange(parseFloat(e.target.value) || 0)} step={step || 1}
-        style={{ width: w || 80, padding: "3px 5px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", background: "#1e293b", border: "1px solid #334155", borderRadius: 4, color: "#fbbf24", textAlign: "right", outline: "none" }} />
+const NI = ({ value, onChange, step, w, isPct }) => (
+    <div style={{ position: "relative", width: w || 80 }}>
+        <input type="number"
+            value={isPct ? +(value * 100).toFixed(2) : value}
+            onChange={e => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) onChange(isPct ? val / 100 : val);
+                else onChange(0);
+            }}
+            step={step || (isPct ? 1 : 1)}
+            style={{ boxSizing: "border-box", width: "100%", padding: isPct ? "3px 15px 3px 5px" : "3px 5px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", background: "#1e293b", border: "1px solid #334155", borderRadius: 4, color: "#fbbf24", textAlign: "right", outline: "none" }}
+        />
+        {isPct && <span style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", color: "#fbbf24", fontSize: 11, pointerEvents: "none" }}>%</span>}
+    </div>
 );
 
 const TABS = ["Market Model, by Product Line", "Projections + P&L", "Actuals & KPIs"];
@@ -182,7 +193,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                         <td style={{ padding: "3px 6px", fontWeight: r.b ? 700 : 400, fontSize: r.l.startsWith("  ") ? 10 : 11, color: r.l.startsWith("  ") ? t3 : t1 }}>{r.l}</td>
                                         {r.k.map((v, vi) => (
                                             <td key={vi} style={{ textAlign: "right", padding: "3px 6px", fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: r.b ? 600 : 400, color: v !== null && v < 0 ? "#ef4444" : t1 }}>
-                                                {v === null ? "—" : r.pct ? fM(v) : typeof v === "number" && v < 20 ? v.toFixed(2) : typeof v === "number" ? v.toFixed(0) : v}
+                                                {v === null ? "—" : r.pct ? fM(v) : typeof v === "number" && v < 20 ? v.toFixed(2) : typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : v}
                                             </td>
                                         ))}
                                     </tr>
@@ -209,7 +220,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                         <td style={{ padding: "3px 5px", fontWeight: 600, color: seg.includes("Customer") ? "#8b5cf6" : "#22c55e" }}>{seg}</td>
                                         {[2022, 2023, 2024, 2025].map(y => {
                                             const s = a.segments[y]?.find(x => x.name === seg);
-                                            return <td key={y} style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{s ? s.rev.toFixed(0) : "—"}</td>;
+                                            return <td key={y} style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{s ? s.rev.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}</td>;
                                         })}
                                     </tr>
                                 ))}
@@ -276,7 +287,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                             <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
                             <XAxis dataKey="y" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
                             <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
-                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`$${v.toFixed(0)}M`]} />
+                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}M`]} />
                             <Bar dataKey="rev" fill="#6366f150" name="Revenue" radius={[2, 2, 0, 0]} />
                             <Line type="monotone" dataKey="gp" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} name="Gross Profit (NG)" />
                             <Line type="monotone" dataKey="opInc" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} name="Operating Income (NG)" />
@@ -332,12 +343,12 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexShrink: 0, flexWrap: isCompact ? "wrap" : "nowrap", width: isCompact ? "100%" : "auto" }}>
                                     <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid ${t3}`, borderRadius: "0 4px 4px 0", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 90 }}>
                                         <div style={{ fontSize: 9, color: t2 }}>Model TAM</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: t2, marginTop: 2 }}>${c.tam.toFixed(0)}M</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: t2, marginTop: 2 }}>${c.tam.toLocaleString(undefined, { maximumFractionDigits: 0 })}M</div>
                                     </div>
                                     <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid ${p.color}`, borderRadius: "0 4px 4px 0", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 100 }}>
                                         <div style={{ fontSize: 9, color: t2 }}>Model SOM</div>
                                         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 2 }}>
-                                            <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: p.color }}>${c.som.toFixed(0)}M</span>
+                                            <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: p.color }}>${c.som.toLocaleString(undefined, { maximumFractionDigits: 0 })}M</span>
                                             <span style={{ fontSize: 10, color: c.cagr >= 0 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>CAGR {fP(c.cagr)}</span>
                                         </div>
                                     </div>
@@ -351,11 +362,11 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 {p.quantity.map((q, qi) => (
                                     <div key={qi} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 6 }}>
                                         <div style={{ flex: 1, fontSize: 10.5 }}>{q.l}</div>
-                                        <NI value={q.v} onChange={v => uQ(sel, qi, v)} step={q.v >= 1e6 ? 100000 : q.v >= 100 ? 5 : q.v >= 1 ? 0.1 : 0.005} w={q.v >= 1e6 ? 95 : 70} />
+                                        <NI value={q.v} onChange={v => uQ(sel, qi, v)} step={q.v >= 1e6 ? 100000 : q.v >= 100 ? 5 : q.v >= 1 ? 0.1 : 0.005} w={q.v >= 1e6 ? 95 : 70} isPct={q.isPct} />
                                     </div>
                                 ))}
                                 <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600 }}>
-                                    <span>Billable units</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#f59e0b" }}>{c.u >= 1e6 ? `${(c.u / 1e6).toFixed(1)}M` : c.u >= 1e3 ? `${(c.u / 1e3).toFixed(0)}K` : c.u.toFixed(0)}</span>
+                                    <span>Billable units</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#f59e0b" }}>{c.u >= 1e6 ? `${(c.u / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 })}M` : c.u >= 1e3 ? `${(c.u / 1e3).toLocaleString(undefined, { maximumFractionDigits: 0 })}K` : c.u.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                 </div>
                             </Box>
                             <Box style={{ flex: 1 }}>
@@ -363,11 +374,11 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 {p.price.map((pr, pi) => (
                                     <div key={pi} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 6 }}>
                                         <div style={{ flex: 1, fontSize: 10.5 }}>{pr.l}</div>
-                                        <NI value={pr.v} onChange={v => uP(sel, pi, v)} step={pr.v >= 50 ? 5 : 0.5} w={70} />
+                                        <NI value={pr.v} onChange={v => uP(sel, pi, v)} step={pr.v >= 50 ? 5 : 0.5} w={70} isPct={pr.isPct} />
                                     </div>
                                 ))}
                                 <div style={{ borderTop: `1px solid ${bdr}`, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600 }}>
-                                    <span>Annual ARPU</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#22c55e" }}>${c.ar.toFixed(0)}</span>
+                                    <span>Annual ARPU</span><span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#22c55e" }}>${c.ar.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                 </div>
                             </Box>
                         </div>
@@ -391,9 +402,9 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 </div>
                             </div>
                             <div style={{ display: "flex", gap: 14, marginTop: 4, fontSize: 10, color: t2, flexWrap: "wrap" }}>
-                                <span>Yr3: <b style={{ color: t1 }}>${(c.som * Math.pow(1 + c.cagr, 3)).toFixed(0)}M</b></span>
-                                <span>Yr5: <b style={{ color: t1 }}>${(c.som * Math.pow(1 + c.cagr, 5)).toFixed(0)}M</b></span>
-                                <span>Yr10: <b style={{ color: t1 }}>${(c.som * Math.pow(1 + c.cagr, 10)).toFixed(0)}M</b></span>
+                                <span>Yr3: <b style={{ color: t1 }}>${(c.som * Math.pow(1 + c.cagr, 3)).toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
+                                <span>Yr5: <b style={{ color: t1 }}>${(c.som * Math.pow(1 + c.cagr, 5)).toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
+                                <span>Yr10: <b style={{ color: t1 }}>${(c.som * Math.pow(1 + c.cagr, 10)).toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
                             </div>
                         </Box>
 
@@ -405,7 +416,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                     <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
                                     <XAxis dataKey="year" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
                                     <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
-                                    <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`$${v.toFixed(0)}M`]} labelFormatter={l => `FY${l}E`} />
+                                    <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => [`$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}M`]} labelFormatter={l => `FY${l}E`} />
                                     <Area type="monotone" dataKey="som" stroke={p.color} strokeWidth={2.5} fill={`url(#g${sel})`} />
                                 </AreaChart>
                             </ResponsiveContainer>
@@ -455,7 +466,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                             <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
                             <XAxis dataKey="year" tick={{ fill: t2, fontSize: 9 }} tickLine={false} />
                             <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
-                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => v ? [`$${v.toFixed(0)}M`] : null} labelFormatter={l => l} />
+                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => v ? [`$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}M`] : null} labelFormatter={l => l} />
                             <Bar dataKey="actual" fill="#ffffff30" name="Actual Revenue" radius={[2, 2, 0, 0]} />
                             {prods.map(p => <Area key={p.id} type="monotone" dataKey={p.id} stackId="1" fill={p.color} stroke={p.color} fillOpacity={0.7} name={p.name} />)}
                             <ReferenceLine x="2030E" stroke="#ffffff20" strokeDasharray="4 4" />
@@ -477,28 +488,28 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 const c = comp[i]; return (
                                     <tr key={p.id} style={{ borderBottom: `1px solid ${bdr}15` }}>
                                         <td style={{ padding: "3px 5px" }}><span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 2, background: p.color, marginRight: 4, verticalAlign: "middle" }} />{p.name}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{c.som.toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{c.som.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                         <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 3)).toFixed(0)}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 5)).toFixed(0)}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 10)).toFixed(0)}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 3)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 5)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 10)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                         <td style={{ padding: "3px 5px", color: CAT_C[p.cat], fontSize: 9 }}>{p.cat}</td>
                                     </tr>);
                             })}
                             <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
                                 <td style={{ padding: "4px 5px" }}>Total Model SOM</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalModelSOM.toFixed(0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalModelSOM.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                 <td />
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 3), 0).toFixed(0)}</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 5), 0).toFixed(0)}</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 10), 0).toFixed(0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 3), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 5), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 10), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                 <td />
                             </tr>
                         </tbody>
                     </table>
                     <div style={{ fontSize: 10, color: t2, marginTop: 6, display: "flex", gap: 16, flexWrap: "wrap" }}>
                         <span>FY2025 Actual Revenue: <b style={{ color: "#f59e0b" }}>$2,945M</b></span>
-                        <span>Model SOM (base year): <b style={{ color: "#6366f1" }}>${totalModelSOM.toFixed(0)}M</b></span>
+                        <span>Model SOM (base year): <b style={{ color: "#6366f1" }}>${totalModelSOM.toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
                         <span>Calibration ratio: <b style={{ color: t1 }}>{(2945 / totalModelSOM).toFixed(2)}x</b></span>
                     </div>
                 </Box>
@@ -518,7 +529,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                         <td style={{ padding: "2px 5px", fontFamily: "'IBM Plex Sans',sans-serif", fontSize: 10, color: t2 }}>
                                             <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: 1, background: pr.color, marginRight: 3, verticalAlign: "middle" }} />{pr.name}
                                         </td>
-                                        {PROJ_YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{(comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025)).toFixed(0)}</td>)}
+                                        {PROJ_YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{(comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>)}
                                     </tr>
                                 ))}
                                 {[
@@ -536,7 +547,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                     return (
                                         <tr key={ri} style={{ borderTop: r.sep ? `2px solid ${bdr}` : `1px solid ${bdr}15`, background: r.hl ? "#6366f108" : "transparent" }}>
                                             <td style={{ padding: "3px 5px", fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: r.b ? 700 : 400, fontSize: 11 }}>{r.l}</td>
-                                            {PROJ_YEARS.map(y => { const v = getVal(y); return (<td key={y} style={{ textAlign: "right", padding: "3px 3px", fontWeight: r.b ? 600 : 400, color: v < 0 ? "#ef4444" : t1 }}>{v.toFixed(0)}</td>); })}
+                                            {PROJ_YEARS.map(y => { const v = getVal(y); return (<td key={y} style={{ textAlign: "right", padding: "3px 3px", fontWeight: r.b ? 600 : 400, color: v < 0 ? "#ef4444" : t1 }}>{v.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>); })}
                                         </tr>);
                                 })}
                             </tbody>
@@ -553,7 +564,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                         const ob = getOpInc(2025); const oe = getOpInc(2025 + h.n); const oc = cagr(ob, oe, h.n);
                         return (<Box key={h.l} style={{ flex: 1 }}>
                             <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: "#6366f1" }}>{h.l}</div>
-                            {[{ l: "Revenue CAGR", v: fP(rc), c: rc >= 0 ? "#22c55e" : "#ef4444" }, { l: "OpInc CAGR", v: fP(oc), c: oc >= 0 ? "#22c55e" : "#ef4444" }, { l: `FY${2025 + h.n}E Revenue`, v: `$${revEnd.toFixed(0)}M`, c: t1 }, { l: `FY${2025 + h.n}E OpInc`, v: `$${oe.toFixed(0)}M`, c: t1 }].map(x => (
+                            {[{ l: "Revenue CAGR", v: fP(rc), c: rc >= 0 ? "#22c55e" : "#ef4444" }, { l: "OpInc CAGR", v: fP(oc), c: oc >= 0 ? "#22c55e" : "#ef4444" }, { l: `FY${2025 + h.n}E Revenue`, v: `$${revEnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}M`, c: t1 }, { l: `FY${2025 + h.n}E OpInc`, v: `$${oe.toLocaleString(undefined, { maximumFractionDigits: 0 })}M`, c: t1 }].map(x => (
                                 <div key={x.l} style={{ display: "flex", justifyContent: "space-between", marginBottom: 3, fontSize: 11 }}>
                                     <span style={{ color: t2 }}>{x.l}</span>
                                     <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, color: x.c }}>{x.v}</span>

@@ -86,9 +86,9 @@ export const PRODUCTS = [
         eq: "Seats × annual ARPU",
         bcg: "Core cloud contact center platform — routing, IVR, omnichannel, ACD",
         businessLineExplanation: "CXone is NICE's flagship cloud-native contact center platform, the #1 CCaaS globally by market share. Includes routing, IVR, omnichannel, recording and quality management.",
-        quantity: [{ l: "Addressable contact centers globally", v: 350000 }, { l: "Avg agents per center", v: 85 }, { l: "Cloud adoption rate", v: 0.38 }, { l: "Multi-tenant % of cloud", v: 0.72 }, { l: "NICE win rate / share", v: 0.14 }],
-        price: [{ l: "Monthly seat ARPU ($)", v: 95 }, { l: "Premium add-on ARPU ($)", v: 22 }, { l: "Annual platform fees ($)", v: 180 }],
-        cagr: [{ l: "Base CCaaS market growth", v: 0.08 }, { l: "On-prem → cloud migration", v: 0.04 }, { l: "International expansion", v: 0.02 }, { l: "Large enterprise wins", v: 0.015 }, { l: "Competitive pressure drag", v: -0.025 }],
+        quantity: [{ l: "Addressable global users (agents)", v: 16000000, isPct: false }, { l: "Cloud adoption %", v: 0.38, isPct: true }, { l: "Multi-tenant % of cloud", v: 0.72, isPct: true }, { l: "NICE unit market share %", v: 0.14, isPct: true }],
+        price: [{ l: "Monthly seat ARPU ($)", v: 95, isPct: false }, { l: "Premium add-on ARPU ($)", v: 22, isPct: false }, { l: "Annual platform fees ($)", v: 0, isPct: false }],
+        cagr: [{ l: "Base CCaaS market growth %", v: 0.08, isPct: true }, { l: "On-prem → cloud migration %", v: 0.04, isPct: true }, { l: "International expansion %", v: 0.02, isPct: true }, { l: "Large enterprise wins %", v: 0.015, isPct: true }, { l: "Competitive pressure drag %", v: -0.025, isPct: true }],
         anchors: [{ m: "Cloud ARR (Dec 2024)", v: "$2.1B" }, { m: "Cloud NRR (FY2024)", v: "111%" }, { m: "Fortune 100 customers", v: "85+" }, { m: "Countries served", v: "150+" }]
     },
     {
@@ -96,9 +96,9 @@ export const PRODUCTS = [
         eq: "Endpoints × annual ARPU",
         bcg: "CXone Mpower — agentic AI, Autopilot, Copilot, Enlighten AI analytics. Fastest-growing segment.",
         businessLineExplanation: "Enlighten AI suite including Autopilot (self-service bots), Copilot (agent assist), Mpower (agentic AI orchestration), and Enlighten Actions/XO. Included in 100% of $1M+ CXone deals.",
-        quantity: [{ l: "CXone cloud seat base", v: 1100000 }, { l: "AI module attach rate", v: 0.28 }, { l: "Self-service endpoints", v: 650000 }, { l: "Endpoint AI attach rate", v: 0.18 }, { l: "Premium AI upsell %", v: 0.35 }],
-        price: [{ l: "Monthly AI seat ARPU ($)", v: 32 }, { l: "Self-service bot ARPU ($)", v: 18 }, { l: "Annual AI analytics ($)", v: 120 }],
-        cagr: [{ l: "Base AI/automation growth", v: 0.12 }, { l: "Agentic AI adoption", v: 0.08 }, { l: "Enterprise AI mandates", v: 0.04 }, { l: "Self-service expansion", v: 0.03 }, { l: "Cannibalization drag", v: -0.02 }],
+        quantity: [{ l: "CXone cloud seat base", v: 1100000, isPct: false }, { l: "AI module attach %", v: 0.28, isPct: true }, { l: "Self-service endpoints", v: 650000, isPct: false }, { l: "Endpoint AI attach %", v: 0.18, isPct: true }, { l: "Premium AI upsell %", v: 0.35, isPct: true }],
+        price: [{ l: "Monthly AI seat ARPU ($)", v: 32, isPct: false }, { l: "Self-service bot ARPU ($)", v: 18, isPct: false }, { l: "Annual AI analytics ($)", v: 120, isPct: false }],
+        cagr: [{ l: "Base AI/automation growth %", v: 0.12, isPct: true }, { l: "Agentic AI adoption %", v: 0.08, isPct: true }, { l: "Enterprise AI mandates %", v: 0.04, isPct: true }, { l: "Self-service expansion %", v: 0.03, isPct: true }, { l: "Cannibalization drag %", v: -0.02, isPct: true }],
         anchors: [{ m: "AI ARR (Q4 2025)", v: "$328M" }, { m: "AI ARR YoY growth", v: "+66%" }, { m: "AI in $1M+ deals", v: "100%" }, { m: "AI & Self-Service rev growth Q1", v: "+39% YoY" }]
     },
     {
@@ -106,9 +106,9 @@ export const PRODUCTS = [
         eq: "Agents × annual ARPU",
         bcg: "WFM, quality management, performance analytics, speech/text analytics, recording — mission-critical for regulated industries",
         businessLineExplanation: "Workforce management (scheduling, forecasting), quality management, interaction recording, performance management, and employee engagement tools.",
-        quantity: [{ l: "Global contact center agents", v: 18000000 }, { l: "WEM software penetration", v: 0.42 }, { l: "Cloud WEM adoption", v: 0.35 }, { l: "Enterprise % (>500 seats)", v: 0.55 }, { l: "NICE share of cloud WEM", v: 0.22 }],
-        price: [{ l: "Monthly WEM ARPU ($)", v: 28 }, { l: "Analytics add-on ARPU ($)", v: 12 }, { l: "Annual recording/storage ($)", v: 85 }],
-        cagr: [{ l: "Base WEM market growth", v: 0.06 }, { l: "Cloud WEM migration", v: 0.03 }, { l: "AI-driven analytics uplift", v: 0.02 }, { l: "Regulatory tailwinds", v: 0.01 }, { l: "Bundle discount drag", v: -0.015 }],
+        quantity: [{ l: "Global contact center agents", v: 18000000, isPct: false }, { l: "WEM software penetration %", v: 0.42, isPct: true }, { l: "Cloud WEM adoption %", v: 0.35, isPct: true }, { l: "Enterprise % (>500 seats)", v: 0.55, isPct: true }, { l: "NICE market share of cloud WEM %", v: 0.22, isPct: true }],
+        price: [{ l: "Monthly WEM ARPU ($)", v: 28, isPct: false }, { l: "Analytics add-on ARPU ($)", v: 12, isPct: false }, { l: "Annual recording/storage ($)", v: 85, isPct: false }],
+        cagr: [{ l: "Base WEM market growth %", v: 0.06, isPct: true }, { l: "Cloud WEM migration %", v: 0.03, isPct: true }, { l: "AI-driven analytics uplift %", v: 0.02, isPct: true }, { l: "Regulatory tailwinds %", v: 0.01, isPct: true }, { l: "Bundle discount drag %", v: -0.015, isPct: true }],
         anchors: [{ m: "WEM market position", v: "#1 Gartner MQ" }, { m: "Recording market share", v: "~40%" }, { m: "Cloud WEM penetration", v: "~35%" }, { m: "Regulated industry share", v: "High" }]
     },
     {
@@ -116,9 +116,9 @@ export const PRODUCTS = [
         eq: "Deployments × annual ACV",
         bcg: "Conversational & agentic AI — acquired Sep 2025. Multilingual voice/chat bots, standalone + CXone-embedded.",
         businessLineExplanation: "Cognigy.AI platform for conversational and agentic AI — supports 100+ languages, voice and chat automation. Standalone product + deeply integrated into CXone Mpower.",
-        quantity: [{ l: "Addressable enterprise CX deployments", v: 120000 }, { l: "Conversational AI adoption", v: 0.15 }, { l: "Multi-language requirement %", v: 0.45 }, { l: "Agentic AI readiness", v: 0.20 }, { l: "NICE/Cognigy win rate", v: 0.06 }],
-        price: [{ l: "Monthly base ACV ($)", v: 4500 }, { l: "Volume/overage ARPU ($)", v: 2200 }, { l: "Annual setup/integration ($)", v: 18000 }],
-        cagr: [{ l: "Conversational AI market growth", v: 0.15 }, { l: "Agentic AI wave", v: 0.10 }, { l: "CXone cross-sell", v: 0.06 }, { l: "International expansion", v: 0.03 }, { l: "Competition drag", v: -0.04 }],
+        quantity: [{ l: "Addressable enterprise CX deployments", v: 120000, isPct: false }, { l: "Conversational AI adoption %", v: 0.15, isPct: true }, { l: "Multi-language requirement %", v: 0.45, isPct: true }, { l: "Agentic AI readiness %", v: 0.20, isPct: true }, { l: "NICE/Cognigy win rate %", v: 0.06, isPct: true }],
+        price: [{ l: "Monthly base ACV ($)", v: 4500, isPct: false }, { l: "Volume/overage ARPU ($)", v: 2200, isPct: false }, { l: "Annual setup/integration ($)", v: 18000, isPct: false }],
+        cagr: [{ l: "Conversational AI market growth %", v: 0.15, isPct: true }, { l: "Agentic AI wave %", v: 0.10, isPct: true }, { l: "CXone cross-sell %", v: 0.06, isPct: true }, { l: "International expansion %", v: 0.03, isPct: true }, { l: "Competition drag %", v: -0.04, isPct: true }],
         anchors: [{ m: "Acquisition price", v: "$827M" }, { m: "Exit ARR target (Dec 2026)", v: "$85M" }, { m: "Languages supported", v: "100+" }, { m: "Gartner recognition", v: "Leader IVA MQ" }]
     },
     {
@@ -126,9 +126,9 @@ export const PRODUCTS = [
         eq: "Licences × annual value",
         bcg: "Declining legacy on-premise CX software licences + associated maintenance. Migrating to CXone cloud.",
         businessLineExplanation: "Legacy on-premises contact center software, maintenance contracts, and licence renewals. Declining as customers migrate to CXone cloud platform.",
-        quantity: [{ l: "Installed base licences", v: 2800000 }, { l: "Annual renewal rate", v: 0.82 }, { l: "Cloud migration rate (annual)", v: 0.12 }, { l: "New on-prem sales (shrinking)", v: 0.02 }, { l: "Effective retention", v: 0.72 }],
-        price: [{ l: "Monthly maintenance ARPU ($)", v: 14 }, { l: "Support/upgrade ARPU ($)", v: 5 }, { l: "Annual licence value ($)", v: 65 }],
-        cagr: [{ l: "Base erosion", v: -0.08 }, { l: "Cloud migration acceleration", v: -0.04 }, { l: "Regulatory hold-backs", v: 0.02 }, { l: "Price escalation", v: 0.01 }, { l: "End-of-life drag", v: -0.02 }],
+        quantity: [{ l: "Installed base licences", v: 2800000, isPct: false }, { l: "Annual renewal %", v: 0.82, isPct: true }, { l: "Cloud migration % (annual)", v: 0.12, isPct: true }, { l: "New on-prem sales % (shrinking)", v: 0.02, isPct: true }, { l: "Effective retention %", v: 0.72, isPct: true }],
+        price: [{ l: "Monthly maintenance ARPU ($)", v: 14, isPct: false }, { l: "Support/upgrade ARPU ($)", v: 5, isPct: false }, { l: "Annual licence value ($)", v: 65, isPct: false }],
+        cagr: [{ l: "Base erosion %", v: -0.08, isPct: true }, { l: "Cloud migration acceleration %", v: -0.04, isPct: true }, { l: "Regulatory hold-backs %", v: 0.02, isPct: true }, { l: "Price escalation %", v: 0.01, isPct: true }, { l: "End-of-life drag %", v: -0.02, isPct: true }],
         anchors: [{ m: "Product rev FY2024", v: "$165M" }, { m: "Product rev FY2025", v: "$171M" }, { m: "On-prem % of total (declining)", v: "~6%" }, { m: "Cloud migration pace", v: "Accelerating" }]
     },
     {
@@ -136,9 +136,9 @@ export const PRODUCTS = [
         eq: "Engagements × avg project value",
         bcg: "Implementation, consulting, training, and managed services for CX platform deployments",
         businessLineExplanation: "Professional services including implementation, system integration, training, and ongoing managed services for CXone and legacy CX platform customers.",
-        quantity: [{ l: "Annual CX implementations", v: 8500 }, { l: "Avg duration (months)", v: 4.5 }, { l: "Consultants per engagement", v: 3.2 }, { l: "Managed services attach", v: 0.35 }, { l: "NICE delivery share", v: 0.60 }],
-        price: [{ l: "Monthly consultant rate ($)", v: 12000 }, { l: "Managed services monthly ($)", v: 4500 }, { l: "Annual training/support ($)", v: 28000 }],
-        cagr: [{ l: "Base services growth", v: -0.02 }, { l: "Cloud simplification", v: -0.04 }, { l: "Partner delivery shift", v: -0.03 }, { l: "AI complexity uplift", v: 0.02 }, { l: "International project growth", v: 0.015 }],
+        quantity: [{ l: "Annual CX implementations", v: 8500, isPct: false }, { l: "Avg duration (months)", v: 4.5, isPct: false }, { l: "Consultants per engagement", v: 3.2, isPct: false }, { l: "Managed services attach %", v: 0.35, isPct: true }, { l: "NICE delivery market share %", v: 0.60, isPct: true }],
+        price: [{ l: "Monthly consultant rate ($)", v: 12000, isPct: false }, { l: "Managed services monthly ($)", v: 4500, isPct: false }, { l: "Annual training/support ($)", v: 28000, isPct: false }],
+        cagr: [{ l: "Base services growth %", v: -0.02, isPct: true }, { l: "Cloud simplification %", v: -0.04, isPct: true }, { l: "Partner delivery shift %", v: -0.03, isPct: true }, { l: "AI complexity uplift %", v: 0.02, isPct: true }, { l: "International project growth %", v: 0.015, isPct: true }],
         anchors: [{ m: "Services rev FY2024", v: "$568M" }, { m: "Services rev FY2025", v: "$530M" }, { m: "Services as % of total", v: "~18%" }, { m: "YoY trend", v: "Declining ~7%" }]
     },
     {
@@ -146,9 +146,9 @@ export const PRODUCTS = [
         eq: "Institutions × annual licence value",
         bcg: "Anti-money laundering, sanctions screening, customer due diligence, KYC — regulatory-driven recurring revenue",
         businessLineExplanation: "NICE Actimize AML solutions: transaction monitoring, sanctions screening, customer due diligence (CDD/KYC), suspicious activity reporting. #1 market position globally.",
-        quantity: [{ l: "Addressable financial institutions", v: 45000 }, { l: "AML software penetration", v: 0.65 }, { l: "Cloud/SaaS adoption", v: 0.30 }, { l: "Tier 1-2 bank concentration", v: 0.40 }, { l: "NICE Actimize share", v: 0.18 }],
-        price: [{ l: "Monthly platform ARPU ($)", v: 8500 }, { l: "Transaction volume ARPU ($)", v: 3200 }, { l: "Annual compliance update ($)", v: 25000 }],
-        cagr: [{ l: "Regulatory expansion", v: 0.04 }, { l: "Cloud AML migration", v: 0.03 }, { l: "New geography mandates", v: 0.02 }, { l: "AI/ML enhancement", v: 0.015 }, { l: "Budget constraint drag", v: -0.02 }],
+        quantity: [{ l: "Addressable financial institutions", v: 45000, isPct: false }, { l: "AML software penetration %", v: 0.65, isPct: true }, { l: "Cloud/SaaS adoption %", v: 0.30, isPct: true }, { l: "Tier 1-2 bank concentration %", v: 0.40, isPct: true }, { l: "NICE Actimize unit share %", v: 0.18, isPct: true }],
+        price: [{ l: "Monthly platform ARPU ($)", v: 8500, isPct: false }, { l: "Transaction volume ARPU ($)", v: 3200, isPct: false }, { l: "Annual compliance update ($)", v: 25000, isPct: false }],
+        cagr: [{ l: "Regulatory expansion %", v: 0.04, isPct: true }, { l: "Cloud AML migration %", v: 0.03, isPct: true }, { l: "New geography mandates %", v: 0.02, isPct: true }, { l: "AI/ML enhancement %", v: 0.015, isPct: true }, { l: "Budget constraint drag %", v: -0.02, isPct: true }],
         anchors: [{ m: "FCC segment rev FY2024", v: "$453M" }, { m: "FCC segment rev Q3 2025", v: "$119M" }, { m: "FCC YoY growth Q3", v: "+7%" }, { m: "Market position", v: "#1 AML globally" }]
     },
     {
@@ -156,9 +156,9 @@ export const PRODUCTS = [
         eq: "Institutions × annual licence value",
         bcg: "Real-time fraud prevention, authentication, account protection — growing with digital payments",
         businessLineExplanation: "Real-time and cross-channel fraud prevention, authentication intelligence, account protection, and payment fraud solutions. Growing with digital banking expansion.",
-        quantity: [{ l: "Addressable institutions", v: 35000 }, { l: "Fraud solution penetration", v: 0.55 }, { l: "Real-time scoring adoption", v: 0.40 }, { l: "Digital payment expansion", v: 0.60 }, { l: "NICE Actimize share", v: 0.12 }],
-        price: [{ l: "Monthly platform ARPU ($)", v: 6500 }, { l: "Transaction scoring ARPU ($)", v: 2800 }, { l: "Annual model tuning ($)", v: 18000 }],
-        cagr: [{ l: "Digital fraud growth", v: 0.05 }, { l: "Real-time scoring demand", v: 0.03 }, { l: "AI/ML model adoption", v: 0.02 }, { l: "Open banking tailwind", v: 0.015 }, { l: "Vendor consolidation drag", v: -0.02 }],
+        quantity: [{ l: "Addressable institutions", v: 35000, isPct: false }, { l: "Fraud solution penetration %", v: 0.55, isPct: true }, { l: "Real-time scoring adoption %", v: 0.40, isPct: true }, { l: "Digital payment expansion %", v: 0.60, isPct: true }, { l: "NICE Actimize unit share %", v: 0.12, isPct: true }],
+        price: [{ l: "Monthly platform ARPU ($)", v: 6500, isPct: false }, { l: "Transaction scoring ARPU ($)", v: 2800, isPct: false }, { l: "Annual model tuning ($)", v: 18000, isPct: false }],
+        cagr: [{ l: "Digital fraud growth %", v: 0.05, isPct: true }, { l: "Real-time scoring demand %", v: 0.03, isPct: true }, { l: "AI/ML model adoption %", v: 0.02, isPct: true }, { l: "Open banking tailwind %", v: 0.015, isPct: true }, { l: "Vendor consolidation drag %", v: -0.02, isPct: true }],
         anchors: [{ m: "Fraud prevention scope", v: "Cross-channel" }, { m: "Authentication analytics", v: "Real-time" }, { m: "Digital payment growth", v: "15%+ CAGR" }, { m: "Key verticals", v: "Banks, Fintechs" }]
     },
     {
@@ -166,9 +166,9 @@ export const PRODUCTS = [
         eq: "Firms × annual licence value",
         bcg: "Trade surveillance, communications compliance, market abuse detection, regulatory reporting",
         businessLineExplanation: "Trade and communications surveillance, market abuse detection, broker-dealer compliance, and regulatory reporting solutions for capital markets firms.",
-        quantity: [{ l: "Addressable broker/dealers + asset mgrs", v: 18000 }, { l: "Surveillance penetration", v: 0.50 }, { l: "Multi-asset coverage", v: 0.35 }, { l: "Comms surveillance attach", v: 0.25 }, { l: "NICE Actimize share", v: 0.15 }],
-        price: [{ l: "Monthly platform ARPU ($)", v: 7200 }, { l: "Data/analytics ARPU ($)", v: 3000 }, { l: "Annual regulatory update ($)", v: 22000 }],
-        cagr: [{ l: "Regulatory complexity growth", v: 0.035 }, { l: "Comms surveillance demand", v: 0.025 }, { l: "AI/NLP analytics uplift", v: 0.02 }, { l: "Cloud migration", v: 0.015 }, { l: "Market consolidation drag", v: -0.015 }],
+        quantity: [{ l: "Addressable broker/dealers + asset mgrs", v: 18000, isPct: false }, { l: "Surveillance penetration %", v: 0.50, isPct: true }, { l: "Multi-asset coverage %", v: 0.35, isPct: true }, { l: "Comms surveillance attach %", v: 0.25, isPct: true }, { l: "NICE Actimize unit share %", v: 0.15, isPct: true }],
+        price: [{ l: "Monthly platform ARPU ($)", v: 7200, isPct: false }, { l: "Data/analytics ARPU ($)", v: 3000, isPct: false }, { l: "Annual regulatory update ($)", v: 22000, isPct: false }],
+        cagr: [{ l: "Regulatory complexity growth %", v: 0.035, isPct: true }, { l: "Comms surveillance demand %", v: 0.025, isPct: true }, { l: "AI/NLP analytics uplift %", v: 0.02, isPct: true }, { l: "Cloud migration %", v: 0.015, isPct: true }, { l: "Market consolidation drag %", v: -0.015, isPct: true }],
         anchors: [{ m: "Capital markets coverage", v: "Global" }, { m: "Comms surveillance", v: "Voice + eComms" }, { m: "Regulatory updates", v: "MiFID II, Dodd-Frank" }, { m: "Key clients", v: "Top 50 banks" }]
     },
 ];
@@ -187,11 +187,11 @@ export const fM = n => `${(n * 100).toFixed(1)}%`;
 export const cagr = (s, e, n) => s > 0 && e > 0 && n > 0 ? (Math.pow(e / s, 1 / n) - 1) : 0;
 
 export function calcTAM(p) {
-    const u = p.quantity.reduce((a, q) => a * q.v, 1);
-    const ar = (p.price[0].v + p.price[1].v) * 12 + p.price[2].v;
+    const u = p.quantity.reduce((a, q) => a * (q.isPct ? q.v : q.v), 1);
+    const ar = (p.price.length >= 3) ? (p.price[0].v + p.price[1].v) * 12 + p.price[2].v : 0;
     const som = (u * ar) / 1e6;
     const shareDriver = p.quantity.find(q => q.l.toLowerCase().includes("share") || q.l.toLowerCase().includes("win rate"));
-    const gammaShare = shareDriver ? shareDriver.v : p.quantity[p.quantity.length - 1].v;
+    const gammaShare = shareDriver ? shareDriver.v : (p.quantity[p.quantity.length - 1].isPct ? p.quantity[p.quantity.length - 1].v : 1);
     const tam = gammaShare > 0 ? som / gammaShare : 0;
     return { u, ar, tam, som };
 }
