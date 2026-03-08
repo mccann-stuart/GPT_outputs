@@ -1,8 +1,17 @@
 # GPT_outputs
-Deliverables as code
 
-This is a Consulting output project. The new deliverables will be rendered as webpages, with JSX and other files the underlying logic that captures a projects output.
+Deliverables as code.
+
+This project renders consulting deliverables as webpages, with JSX and `.mjs` files capturing the underlying logic.
+
 ## Viewer routing
 - `index.html` automatically redirects iPhone browsers to `iphone.html` while preserving query parameters and hash.
-- Add `?desktop=1` to the URL to bypass the redirect and stay on the desktop viewer.
+- Add `?desktop=1` to bypass redirect and force the desktop viewer.
 
+## Local checks
+- Run all logic checks: `npm test`
+- Run a specific suite:
+  - `npm run test:gamma`
+  - `npm run test:truelayer`
+  - `npm run test:clone`
+- Run the clone benchmark: `npm run bench:clone`
