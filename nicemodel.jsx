@@ -16,7 +16,7 @@ import {
     calcCAGR,
     DEFAULT_SETTINGS as LOGIC_DEFAULT_SETTINGS,
     resolveInitialSettings
-} from "./nicemodel-logic.mjs";
+} from "./nicelogic.mjs";
 
 export const DEFAULT_SETTINGS = LOGIC_DEFAULT_SETTINGS;
 
