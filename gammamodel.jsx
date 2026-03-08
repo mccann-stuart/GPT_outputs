@@ -1,14 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ComposedChart } from "recharts";
-
-// --- S-Curve / Logistic function ---
-const logistic = (t, L, k, t0) => L / (1 + Math.exp(-k * (t - t0)));
-
-// --- Inverse logistic for decline ---
-const declineLogistic = (t, initialShare, floorShare, k, t0) => {
-    const range = initialShare - floorShare;
-    return floorShare + range / (1 + Math.exp(k * (t - t0)));
-};
+import { logistic, declineLogistic } from "./gammamodel-logic.mjs";
 
 const CURRENT_YEAR = 2025;
 const YEARS = Array.from({ length: 21 }, (_, i) => CURRENT_YEAR + i);
