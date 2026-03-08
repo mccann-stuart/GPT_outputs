@@ -13,60 +13,60 @@ export const ACTUALS = {
     group: [
         {
             year: 2022, label: "FY2022",
-            rev: 2181, cogs: 684, gp: 1498, gpM: 0.687,
-            ngRev: 2181, ngGP: 1604, ngGPM: 0.735, ngOpInc: 626, ngOpM: 0.287, ngNI: 536, ngEPS: 8.10,
-            opInc: 335, opM: 0.154, ni: 266, eps: 4.02,
-            cloudRev: 1153, cloudPct: 0.53, servicesRev: 725, productRev: 303,
+            rev: 2181.294, cogs: 684, gp: 1498, gpM: 0.687,
+            ngRev: 2181.294, ngGP: 1594.622, ngGPM: 0.7310440499996792, ngOpInc: 625.1, ngOpM: 0.2865730158337207, ngNI: 506.772, ngEPS: 7.62,
+            opInc: 335.173, opM: 0.154, ni: 265.945, eps: 4.02,
+            cloudRev: 1295.323, cloudPct: 0.5938323765618024, servicesRev: 650.116, productRev: 235.855,
             cashOps: 564, netCash: null,
         },
         {
             year: 2023, label: "FY2023",
-            rev: 2378, cogs: 769, gp: 1609, gpM: 0.677,
-            ngRev: 2378, ngGP: 1709, ngGPM: 0.719, ngOpInc: 704, ngOpM: 0.296, ngNI: 600, ngEPS: 9.05,
-            opInc: 435, opM: 0.183, ni: 338, eps: 5.11,
-            cloudRev: 1409, cloudPct: 0.59, servicesRev: 695, productRev: 274,
+            rev: 2377.508, cogs: 769, gp: 1609, gpM: 0.677,
+            ngRev: 2377.508, ngGP: 1708.773, ngGPM: 0.7187243954594474, ngOpInc: 703.8, ngOpM: 0.2960242405072875, ngNI: 582.67, ngEPS: 8.79,
+            opInc: 435.227, opM: 0.183, ni: 338.301, eps: 5.11,
+            cloudRev: 1581.825, cloudPct: 0.6653289915323104, servicesRev: 641.387, productRev: 154.296,
             cashOps: 563, netCash: null,
         },
         {
             year: 2024, label: "FY2024",
-            rev: 2735, cogs: 910, gp: 1826, gpM: 0.668,
-            ngRev: 2735, ngGP: 1943, ngGPM: 0.710, ngOpInc: 850, ngOpM: 0.311, ngNI: 728, ngEPS: 11.24,
-            opInc: 546, opM: 0.200, ni: 443, eps: 6.76,
-            cloudRev: 2002, cloudPct: 0.73, servicesRev: 568, productRev: 165,
+            rev: 2735.272, cogs: 910, gp: 1826, gpM: 0.668,
+            ngRev: 2735.272, ngGP: 1942.657, ngGPM: 0.7102244310620662, ngOpInc: 849.6, ngOpM: 0.3106089632036595, ngNI: 728.423, ngEPS: 11.12,
+            opInc: 545.954, opM: 0.200, ni: 442.588, eps: 6.76,
+            cloudRev: 1984.16, cloudPct: 0.7253976935383392, servicesRev: 596.031, productRev: 155.081,
             cashOps: 833, netCash: 1163,
         },
         {
             year: 2025, label: "FY2025",
-            rev: 2945, cogs: 989, gp: 1956, gpM: 0.664,
-            ngRev: 2945, ngGP: 2050, ngGPM: 0.696, ngOpInc: 908, ngOpM: 0.308, ngNI: 779, ngEPS: 12.46,
-            opInc: 646, opM: 0.219, ni: 612, eps: 9.67,
-            cloudRev: 2244, cloudPct: 0.76, servicesRev: 530, productRev: 171,
+            rev: 2945.399, cogs: 989, gp: 1956, gpM: 0.664,
+            ngRev: 2945.399, ngGP: 2049.529, ngGPM: 0.695840869097871, ngOpInc: 907.9, ngOpM: 0.3082434671839028, ngNI: 778.814, ngEPS: 12.3,
+            opInc: 645.758, opM: 0.219, ni: 612.101, eps: 9.67,
+            cloudRev: 2238.421, cloudPct: 0.7599720784858011, servicesRev: 559.989, productRev: 146.989,
             cashOps: 717, netCash: 417, debt: 0,
         },
     ],
     segments: {
         2022: [
-            { name: "Customer Engagement", rev: 1769, pct: 0.811 },
-            { name: "Financial Crime & Compliance", rev: 412, pct: 0.189 },
+            { name: "Customer Engagement", rev: 1768.804, pct: 0.8108966512537972 },
+            { name: "Financial Crime & Compliance", rev: 412.49, pct: 0.189103348746203 },
         ],
         2023: [
-            { name: "Customer Engagement", rev: 1974, pct: 0.830 },
-            { name: "Financial Crime & Compliance", rev: 403, pct: 0.170 },
+            { name: "Customer Engagement", rev: 1974.09, pct: 0.8303189726385779 },
+            { name: "Financial Crime & Compliance", rev: 403.418, pct: 0.1696810273614222 },
         ],
         2024: [
-            { name: "Customer Engagement", rev: 2282, pct: 0.835 },
-            { name: "Financial Crime & Compliance", rev: 453, pct: 0.165 },
+            { name: "Customer Engagement", rev: 2281.781, pct: 0.8342062507860278 },
+            { name: "Financial Crime & Compliance", rev: 453.491, pct: 0.1657937492139721 },
         ],
         2025: [
-            { name: "Customer Engagement", rev: 2470, pct: 0.839 },
-            { name: "Financial Crime & Compliance", rev: 475, pct: 0.161 },
+            { name: "Customer Engagement", rev: 2459.974, pct: 0.835192108098088 },
+            { name: "Financial Crime & Compliance", rev: 485.425, pct: 0.1648078919019121 },
         ],
     },
     revenueByModel: {
-        2022: { cloud: 1153, services: 725, product: 303 },
-        2023: { cloud: 1409, services: 695, product: 274 },
-        2024: { cloud: 2002, services: 568, product: 165 },
-        2025: { cloud: 2244, services: 530, product: 171 },
+        2022: { cloud: 1295.323, services: 650.116, product: 235.855 },
+        2023: { cloud: 1581.825, services: 641.387, product: 154.296 },
+        2024: { cloud: 1984.16, services: 596.031, product: 155.081 },
+        2025: { cloud: 2238.421, services: 559.989, product: 146.989 },
     },
     keyMetrics: {
         "FY2024": { cloudARR: 2100, cloudNRR: 1.11, aiInLargeDeals: 0.97, customers: 25000, fortune100: 85, countries: 150, recurringPct: 0.90 },
@@ -129,7 +129,7 @@ export const PRODUCTS = [
         quantity: [{ l: "Installed base licences", v: 2800000, isPct: false }, { l: "Annual renewal %", v: 0.82, isPct: true }, { l: "Cloud migration % (annual)", v: 0.12, isPct: true }, { l: "New on-prem sales % (shrinking)", v: 0.02, isPct: true }, { l: "Effective retention %", v: 0.72, isPct: true }],
         price: [{ l: "Monthly maintenance ARPU ($)", v: 14, isPct: false }, { l: "Support/upgrade ARPU ($)", v: 5, isPct: false }, { l: "Annual licence value ($)", v: 65, isPct: false }],
         cagr: [{ l: "Base erosion %", v: -0.08, isPct: true }, { l: "Cloud migration acceleration %", v: -0.04, isPct: true }, { l: "Regulatory hold-backs %", v: 0.02, isPct: true }, { l: "Price escalation %", v: 0.01, isPct: true }, { l: "End-of-life drag %", v: -0.02, isPct: true }],
-        anchors: [{ m: "Product rev FY2024", v: "$165M" }, { m: "Product rev FY2025", v: "$171M" }, { m: "On-prem % of total (declining)", v: "~6%" }, { m: "Cloud migration pace", v: "Accelerating" }]
+        anchors: [{ m: "Product rev FY2024", v: "$155.1M" }, { m: "Product rev FY2025", v: "$147.0M" }, { m: "On-prem % of total (declining)", v: "~6%" }, { m: "Cloud migration pace", v: "Accelerating" }]
     },
     {
         id: "cx_services", name: "CX Professional Services", cat: "CX Legacy", color: "#eab308", tamUnit: "Engagements",
@@ -139,7 +139,7 @@ export const PRODUCTS = [
         quantity: [{ l: "Annual CX implementations", v: 8500, isPct: false }, { l: "Avg duration (months)", v: 4.5, isPct: false }, { l: "Consultants per engagement", v: 3.2, isPct: false }, { l: "Managed services attach %", v: 0.35, isPct: true }, { l: "NICE delivery market share %", v: 0.60, isPct: true }],
         price: [{ l: "Monthly consultant rate ($)", v: 12000, isPct: false }, { l: "Managed services monthly ($)", v: 4500, isPct: false }, { l: "Annual training/support ($)", v: 28000, isPct: false }],
         cagr: [{ l: "Base services growth %", v: -0.02, isPct: true }, { l: "Cloud simplification %", v: -0.04, isPct: true }, { l: "Partner delivery shift %", v: -0.03, isPct: true }, { l: "AI complexity uplift %", v: 0.02, isPct: true }, { l: "International project growth %", v: 0.015, isPct: true }],
-        anchors: [{ m: "Services rev FY2024", v: "$568M" }, { m: "Services rev FY2025", v: "$530M" }, { m: "Services as % of total", v: "~18%" }, { m: "YoY trend", v: "Declining ~7%" }]
+        anchors: [{ m: "Services rev FY2024", v: "$596.0M" }, { m: "Services rev FY2025", v: "$560.0M" }, { m: "Services as % of total", v: "~18%" }, { m: "YoY trend", v: "Declining ~7%" }]
     },
     {
         id: "actimize_aml", name: "AML & KYC", cat: "Financial Crime", color: "#22c55e", tamUnit: "Institutions",
@@ -149,7 +149,7 @@ export const PRODUCTS = [
         quantity: [{ l: "Addressable financial institutions", v: 45000, isPct: false }, { l: "AML software penetration %", v: 0.65, isPct: true }, { l: "Cloud/SaaS adoption %", v: 0.30, isPct: true }, { l: "Tier 1-2 bank concentration %", v: 0.40, isPct: true }, { l: "NICE Actimize unit share %", v: 0.18, isPct: true }],
         price: [{ l: "Monthly platform ARPU ($)", v: 8500, isPct: false }, { l: "Transaction volume ARPU ($)", v: 3200, isPct: false }, { l: "Annual compliance update ($)", v: 25000, isPct: false }],
         cagr: [{ l: "Regulatory expansion %", v: 0.04, isPct: true }, { l: "Cloud AML migration %", v: 0.03, isPct: true }, { l: "New geography mandates %", v: 0.02, isPct: true }, { l: "AI/ML enhancement %", v: 0.015, isPct: true }, { l: "Budget constraint drag %", v: -0.02, isPct: true }],
-        anchors: [{ m: "FCC segment rev FY2024", v: "$453M" }, { m: "FCC segment rev Q3 2025", v: "$119M" }, { m: "FCC YoY growth Q3", v: "+7%" }, { m: "Market position", v: "#1 AML globally" }]
+        anchors: [{ m: "FCC segment rev FY2024", v: "$453.5M" }, { m: "FCC segment rev Q3 2025", v: "$119M" }, { m: "FCC YoY growth Q3", v: "+7%" }, { m: "Market position", v: "#1 AML globally" }]
     },
     {
         id: "actimize_fraud", name: "Fraud & Authentication", cat: "Financial Crime", color: "#10b981", tamUnit: "Institutions",

@@ -164,7 +164,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                         { l: "FY2025 Revenue", v: "$2,945M", d: "+8% YoY", c: "#6366f1" },
                         { l: "FY2025 Non-GAAP GM", v: "69.6%", d: "Non-GAAP basis", c: "#22c55e" },
                         { l: "FY2025 Non-GAAP OpInc", v: "$908M", d: "30.8% margin", c: "#f59e0b" },
-                        { l: "FY2025 Cloud Rev", v: "$2,244M", d: "+13% YoY, 76% of total", c: "#8b5cf6" },
+                        { l: "FY2025 Cloud Rev", v: "$2,238M", d: "+13% YoY, 76% of total", c: "#8b5cf6" },
                         { l: "AI ARR (Q4 2025)", v: "$328M", d: "+66% YoY", c: "#ec4899" },
                         { l: "FY2026E Guidance", v: "$3.1–3.2B", d: "Revenue range", c: "#10b981" },
                     ].map((k, i) => (
@@ -188,21 +188,21 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                             </tr></thead>
                             <tbody>
                                 {[
-                                    { l: "Total Revenue", k: [2181, 2378, 2735, 2945], b: true },
-                                    { l: "  Cloud Revenue", k: [1153, 1409, 2002, 2244] },
-                                    { l: "  Services Revenue", k: [725, 695, 568, 530] },
-                                    { l: "  Product Revenue", k: [303, 274, 165, 171] },
-                                    { l: "Cloud % of Total", k: [0.53, 0.59, 0.73, 0.76], pct: true },
+                                    { l: "Total Revenue", k: [2181.294, 2377.508, 2735.272, 2945.399], b: true },
+                                    { l: "  Cloud Revenue", k: [1295.323, 1581.825, 1984.16, 2238.421] },
+                                    { l: "  Services Revenue", k: [650.116, 641.387, 596.031, 559.989] },
+                                    { l: "  Product Revenue", k: [235.855, 154.296, 155.081, 146.989] },
+                                    { l: "Cloud % of Total", k: [0.5938323765618024, 0.6653289915323104, 0.7253976935383392, 0.7599720784858011], pct: true },
                                     { l: "", k: [null, null, null, null] },
-                                    { l: "Gross Profit (Non-GAAP)", k: [1604, 1709, 1943, 2050], b: true },
-                                    { l: "Gross Margin (Non-GAAP)", k: [0.735, 0.719, 0.710, 0.696], pct: true },
-                                    { l: "Operating Income (Non-GAAP)", k: [626, 704, 850, 908], b: true, hl: true },
-                                    { l: "Operating Margin (Non-GAAP)", k: [0.287, 0.296, 0.311, 0.308], pct: true },
-                                    { l: "Net Income (Non-GAAP)", k: [536, 600, 728, 779], b: true },
-                                    { l: "EPS (Non-GAAP, diluted)", k: [8.10, 9.05, 11.24, 12.46] },
+                                    { l: "Gross Profit (Non-GAAP)", k: [1594.622, 1708.773, 1942.657, 2049.529], b: true },
+                                    { l: "Gross Margin (Non-GAAP)", k: [0.7310440499996792, 0.7187243954594474, 0.7102244310620662, 0.695840869097871], pct: true },
+                                    { l: "Operating Income (Non-GAAP)", k: [625.1, 703.8, 849.6, 907.9], b: true, hl: true },
+                                    { l: "Operating Margin (Non-GAAP)", k: [0.2865730158337207, 0.2960242405072875, 0.3106089632036595, 0.3082434671839028], pct: true },
+                                    { l: "Net Income (Non-GAAP)", k: [506.772, 582.67, 728.423, 778.814], b: true },
+                                    { l: "EPS (Non-GAAP, diluted)", k: [7.62, 8.79, 11.12, 12.30] },
                                     { l: "", k: [null, null, null, null] },
-                                    { l: "GAAP Operating Income", k: [335, 435, 546, 646] },
-                                    { l: "GAAP Net Income", k: [266, 338, 443, 612], b: true },
+                                    { l: "GAAP Operating Income", k: [335.173, 435.227, 545.954, 645.758] },
+                                    { l: "GAAP Net Income", k: [265.945, 338.301, 442.588, 612.101], b: true },
                                     { l: "GAAP EPS (diluted)", k: [4.02, 5.11, 6.76, 9.67] },
                                     { l: "", k: [null, null, null, null] },
                                     { l: "Cash Flow from Operations", k: [564, 563, 833, 717] },
@@ -245,7 +245,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 ))}
                                 <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
                                     <td style={{ padding: "4px 5px" }}>Total</td>
-                                    {[2181, 2378, 2735, 2945].map((v, i) => (
+                                    {[2181.294, 2377.508, 2735.272, 2945.399].map((v, i) => (
                                         <td key={i} style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{v}</td>
                                     ))}
                                 </tr>
@@ -298,10 +298,10 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                     <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Revenue & Non-GAAP Operating Income — Actuals ($M)</div>
                     <ResponsiveContainer width="100%" height={180}>
                         <ComposedChart data={[
-                            { y: "FY22", rev: 2181, opInc: 626, gp: 1604 },
-                            { y: "FY23", rev: 2378, opInc: 704, gp: 1709 },
-                            { y: "FY24", rev: 2735, opInc: 850, gp: 1943 },
-                            { y: "FY25", rev: 2945, opInc: 908, gp: 2050 },
+                            { y: "FY22", rev: 2181.294, opInc: 625.1, gp: 1594.622 },
+                            { y: "FY23", rev: 2377.508, opInc: 703.8, gp: 1708.773 },
+                            { y: "FY24", rev: 2735.272, opInc: 849.6, gp: 1942.657 },
+                            { y: "FY25", rev: 2945.399, opInc: 907.9, gp: 2049.529 },
                         ]} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
                             <XAxis dataKey="y" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
