@@ -4,6 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function redirectIphoneToMobileView() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('desktop') === '1') return;
+
+            const ua = navigator.userAgent || '';
+            const isiPhone = /iPhone/i.test(ua);
+            if (!isiPhone) return;
+
+            const targetUrl = new URL('iphone.html', window.location.href);
+            targetUrl.search = window.location.search;
+            targetUrl.hash = window.location.hash;
+            window.location.replace(targetUrl.toString());
+        })();
+    </script>
     <title>JSX Viewer</title>
     <!-- Import map for React -->
     <script type="importmap">
