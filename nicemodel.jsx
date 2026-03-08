@@ -41,6 +41,16 @@ const NI = ({ value, onChange, step, w, isPct }) => (
 );
 
 const TABS = ["Market Model, by Product Line", "Projections + P&L", "Actuals & KPIs"];
+const fyLabel = (year, isEstimate = false) => `FY${String(year).slice(-2)}${isEstimate ? "E" : ""}`;
+const formatAxisRevenue = value => (Math.abs(value) >= 1e3 ? `${(value / 1e3).toFixed(1)}B` : `${Math.round(value).toLocaleString()}`);
+const formatCalibrationRatio = ratio => {
+    if (!Number.isFinite(ratio)) return "n/a";
+    if (ratio === 0) return "0x";
+    const absRatio = Math.abs(ratio);
+    if (absRatio < 0.01) return `${ratio.toFixed(4)}x`;
+    if (absRatio < 0.1) return `${ratio.toFixed(3)}x`;
+    return `${ratio.toFixed(2)}x`;
+};
 
 export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettingsChange }) {
     const resolvedInitialSettings = useMemo(
@@ -77,6 +87,10 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
 
     const comp = useMemo(() => prods.map(p => { const r = calcTAM(p); const c = calcCAGR(p); return { ...r, cagr: c }; }), [prods]);
     const totalModelSOM = comp.reduce((s, c) => s + c.som, 0);
+    const fy2025ActualRevenue = ACTUALS.group.find(x => x.year === 2025)?.ngRev ?? ACTUALS.group.find(x => x.year === 2025)?.rev ?? 0;
+    const calibrationRatio = totalModelSOM > 0 ? fy2025ActualRevenue / totalModelSOM : 1;
+    const calibratedBaseSom = useMemo(() => comp.map(c => c.som * calibrationRatio), [comp, calibrationRatio]);
+    const totalCalibratedSOM = calibratedBaseSom.reduce((s, value) => s + value, 0);
 
     // Build combined actuals + projections P&L
     const plData = useMemo(() => {
@@ -91,7 +105,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
         });
         PROJ_YEARS.slice(1).forEach(y => {
             let totRev = 0;
-            prods.forEach((p, i) => { const t = y - 2025; totRev += comp[i].som * Math.pow(1 + comp[i].cagr, t); });
+            comp.forEach((c, i) => { const t = y - 2025; totRev += calibratedBaseSom[i] * Math.pow(1 + c.cagr, t); });
             const gp = totRev * gpM;
             const opex = totRev * opxR;
             const opInc = gp - opex - centralCost;
@@ -100,23 +114,28 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
             rows.push({ year: y, type: "projected", rev: totRev, gp, gpM, ngOpInc: opInc, pbt, ni: pbt - tax });
         });
         return rows;
-    }, [prods, comp, gpM, opxR, taxR, centralCost]);
+    }, [comp, calibratedBaseSom, gpM, opxR, taxR, centralCost]);
 
     // Product-level projections
-    const prodProj = useMemo(() => prods.map((p, i) => {
-        return PROJ_YEARS.map(y => ({ year: y, som: comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025) }));
-    }), [prods, comp]);
+    const prodProj = useMemo(() => prods.map((p, i) => (
+        PROJ_YEARS.map(y => ({ year: y, som: calibratedBaseSom[i] * Math.pow(1 + comp[i].cagr, y - 2025) }))
+    )), [prods, comp, calibratedBaseSom]);
 
     // Stacked revenue data for chart
     const stackData = useMemo(() => {
         return PROJ_YEARS.map(y => {
             const row = { year: y };
             let tot = 0;
-            prods.forEach((p, i) => { const t = y - 2025; const r = comp[i].som * Math.pow(1 + comp[i].cagr, t); row[p.id] = r; tot += r; });
+            prods.forEach((p, i) => { const t = y - 2025; const r = calibratedBaseSom[i] * Math.pow(1 + comp[i].cagr, t); row[p.id] = r; tot += r; });
             row.total = tot;
             return row;
         });
-    }, [prods, comp]);
+    }, [prods, comp, calibratedBaseSom]);
+
+    const actualPlusModelledData = useMemo(() => ([
+        ...ACTUALS.group.map(row => ({ year: fyLabel(row.year), actual: row.ngRev ?? row.rev })),
+        ...stackData.map(d => ({ year: fyLabel(d.year, true), ...d, modelled: d.total }))
+    ]), [stackData]);
 
     const a = ACTUALS;
 
@@ -459,17 +478,18 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                         <span style={{ fontSize: 10, color: t2 }}>FY22–25 actual bars · FY25E–35E driver-tree projection</span>
                     </div>
                     <ResponsiveContainer width="100%" height={240}>
-                        <ComposedChart data={[
-                            { year: "FY22", actual: 2181 }, { year: "FY23", actual: 2378 }, { year: "FY24", actual: 2735 }, { year: "FY25", actual: 2945 },
-                            ...stackData.map(d => ({ year: `${d.year}E`, ...d, modelled: d.total }))
-                        ]} margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
+                        <ComposedChart data={actualPlusModelledData} margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
                             <XAxis dataKey="year" tick={{ fill: t2, fontSize: 9 }} tickLine={false} />
-                            <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
-                            <Tooltip contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }} formatter={v => v ? [`$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}M`] : null} labelFormatter={l => l} />
+                            <YAxis tick={{ fill: t2, fontSize: 10 }} tickFormatter={formatAxisRevenue} tickLine={false} axisLine={false} />
+                            <Tooltip
+                                contentStyle={{ background: "#1a2744", border: `1px solid ${bdr}`, borderRadius: 6, fontSize: 11, color: t1 }}
+                                formatter={(value, name) => (value === null || value === undefined ? null : [`$${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}M`, name])}
+                                labelFormatter={label => label}
+                            />
                             <Bar dataKey="actual" fill="#ffffff30" name="Actual Revenue" radius={[2, 2, 0, 0]} />
                             {prods.map(p => <Area key={p.id} type="monotone" dataKey={p.id} stackId="1" fill={p.color} stroke={p.color} fillOpacity={0.7} name={p.name} />)}
-                            <ReferenceLine x="2030E" stroke="#ffffff20" strokeDasharray="4 4" />
+                            <ReferenceLine x={fyLabel(2030, true)} stroke="#ffffff20" strokeDasharray="4 4" />
                         </ComposedChart>
                     </ResponsiveContainer>
                 </Box>
@@ -479,38 +499,41 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                     <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Product SOM Summary — Model</div>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
                         <thead><tr style={{ borderBottom: `2px solid ${bdr}` }}>
-                            {["Product", "SOM $M", "CAGR", "FY28E", "FY30E", "FY35E", "Category"].map(h => (
+                            {["Product", "SOM $M (FY25-cal)", "CAGR", "FY28E", "FY30E", "FY35E", "Category"].map(h => (
                                 <th key={h} style={{ textAlign: h === "Product" || h === "Category" ? "left" : "right", padding: "4px 5px", color: t2, fontWeight: 500, fontSize: 9 }}>{h}</th>
                             ))}
                         </tr></thead>
                         <tbody>
                             {prods.map((p, i) => {
-                                const c = comp[i]; return (
+                                const c = comp[i];
+                                const baseSom = calibratedBaseSom[i];
+                                return (
                                     <tr key={p.id} style={{ borderBottom: `1px solid ${bdr}15` }}>
                                         <td style={{ padding: "3px 5px" }}><span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 2, background: p.color, marginRight: 4, verticalAlign: "middle" }} />{p.name}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{c.som.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{baseSom.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                         <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 3)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 5)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(c.som * Math.pow(1 + c.cagr, 10)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(baseSom * Math.pow(1 + c.cagr, 3)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(baseSom * Math.pow(1 + c.cagr, 5)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                        <td style={{ textAlign: "right", padding: "3px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{(baseSom * Math.pow(1 + c.cagr, 10)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                         <td style={{ padding: "3px 5px", color: CAT_C[p.cat], fontSize: 9 }}>{p.cat}</td>
                                     </tr>);
                             })}
                             <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
-                                <td style={{ padding: "4px 5px" }}>Total Model SOM</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalModelSOM.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                <td style={{ padding: "4px 5px" }}>Total Calibrated SOM</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{totalCalibratedSOM.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                 <td />
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 3), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 5), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, 10), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c, i) => s + calibratedBaseSom[i] * Math.pow(1 + c.cagr, 3), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c, i) => s + calibratedBaseSom[i] * Math.pow(1 + c.cagr, 5), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                <td style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{comp.reduce((s, c, i) => s + calibratedBaseSom[i] * Math.pow(1 + c.cagr, 10), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                                 <td />
                             </tr>
                         </tbody>
                     </table>
                     <div style={{ fontSize: 10, color: t2, marginTop: 6, display: "flex", gap: 16, flexWrap: "wrap" }}>
-                        <span>FY2025 Actual Revenue: <b style={{ color: "#f59e0b" }}>$2,945M</b></span>
-                        <span>Model SOM (base year): <b style={{ color: "#6366f1" }}>${totalModelSOM.toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
-                        <span>Calibration ratio: <b style={{ color: t1 }}>{(2945 / totalModelSOM).toFixed(2)}x</b></span>
+                        <span>FY2025 Actual Revenue: <b style={{ color: "#f59e0b" }}>${fy2025ActualRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
+                        <span>Raw Model SOM (base year): <b style={{ color: "#6366f1" }}>${totalModelSOM.toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
+                        <span>Calibration ratio: <b style={{ color: t1 }}>{formatCalibrationRatio(calibrationRatio)}</b></span>
+                        <span>Calibrated SOM (base year): <b style={{ color: "#22c55e" }}>${totalCalibratedSOM.toLocaleString(undefined, { maximumFractionDigits: 0 })}M</b></span>
                     </div>
                 </Box>
 
@@ -529,7 +552,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                         <td style={{ padding: "2px 5px", fontFamily: "'IBM Plex Sans',sans-serif", fontSize: 10, color: t2 }}>
                                             <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: 1, background: pr.color, marginRight: 3, verticalAlign: "middle" }} />{pr.name}
                                         </td>
-                                        {PROJ_YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{(comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>)}
+                                        {PROJ_YEARS.map(y => <td key={y} style={{ textAlign: "right", padding: "2px 3px", fontSize: 10 }}>{(calibratedBaseSom[i] * Math.pow(1 + comp[i].cagr, y - 2025)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>)}
                                     </tr>
                                 ))}
                                 {[
@@ -540,7 +563,7 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                     { k: "ni", l: "Net Income", b: true },
                                 ].map((r, ri) => {
                                     const getVal = (y) => {
-                                        let tot = 0; prods.forEach((p, i) => { tot += comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025); });
+                                        let tot = 0; comp.forEach((c, i) => { tot += calibratedBaseSom[i] * Math.pow(1 + c.cagr, y - 2025); });
                                         const gp = tot * gpM; const opInc = gp - tot * opxR - centralCost; const pbt2 = opInc;
                                         return { rev: tot, gp, ngOpInc: opInc, pbt: pbt2, ni: pbt2 - Math.max(0, pbt2 * taxR) }[r.k];
                                     };
@@ -558,9 +581,9 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                 {/* CAGR summary */}
                 <div style={{ display: "flex", gap: 10, flexDirection: isCompact ? "column" : "row" }}>
                     {[{ l: "3-Year (→FY2028)", n: 3 }, { l: "5-Year (→FY2030)", n: 5 }, { l: "10-Year (→FY2035)", n: 10 }].map(h => {
-                        const revBase = totalModelSOM; const revEnd = comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, h.n), 0);
+                        const revBase = totalCalibratedSOM; const revEnd = comp.reduce((s, c, i) => s + calibratedBaseSom[i] * Math.pow(1 + c.cagr, h.n), 0);
                         const rc = cagr(revBase, revEnd, h.n);
-                        const getOpInc = (y) => { let tot = 0; prods.forEach((p, i) => { tot += comp[i].som * Math.pow(1 + comp[i].cagr, y - 2025); }); return tot * gpM - tot * opxR - centralCost; };
+                        const getOpInc = (y) => { let tot = 0; comp.forEach((c, i) => { tot += calibratedBaseSom[i] * Math.pow(1 + c.cagr, y - 2025); }); return tot * gpM - tot * opxR - centralCost; };
                         const ob = getOpInc(2025); const oe = getOpInc(2025 + h.n); const oc = cagr(ob, oe, h.n);
                         return (<Box key={h.l} style={{ flex: 1 }}>
                             <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: "#6366f1" }}>{h.l}</div>

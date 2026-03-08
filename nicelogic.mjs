@@ -186,12 +186,36 @@ export const fP = n => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(1)}%`;
 export const fM = n => `${(n * 100).toFixed(1)}%`;
 export const cagr = (s, e, n) => s > 0 && e > 0 && n > 0 ? (Math.pow(e / s, 1 / n) - 1) : 0;
 
+function parseAnchorMoneyToMillions(anchorValue) {
+    if (typeof anchorValue !== "string") return null;
+    const match = anchorValue.replace(/\s+/g, "").match(/\$([\d,.]+)([MB])?/i);
+    if (!match) return null;
+    const numeric = Number(match[1].replace(/,/g, ""));
+    if (!Number.isFinite(numeric)) return null;
+    const unit = (match[2] || "M").toUpperCase();
+    return unit === "B" ? numeric * 1e3 : numeric;
+}
+
+function getFY2025AnchorSOM(p) {
+    const anchors = Array.isArray(p.anchors) ? p.anchors : [];
+    const fy2025Anchor = anchors.find(anchor => {
+        const metric = String(anchor?.m || "").toLowerCase();
+        const isBaseYear = /(fy\s*2025|q4\s*2025|dec\s*2025)/i.test(metric);
+        const isRevenueLike = /(rev|revenue|arr)/i.test(metric);
+        return isBaseYear && isRevenueLike;
+    });
+    return fy2025Anchor ? parseAnchorMoneyToMillions(fy2025Anchor.v) : null;
+}
+
 export function calcTAM(p) {
-    const u = p.quantity.reduce((a, q) => a * (q.isPct ? q.v : q.v), 1);
+    const rawU = p.quantity.reduce((a, q) => a * (q.isPct ? q.v : q.v), 1);
     const ar = (p.price.length >= 3) ? (p.price[0].v + p.price[1].v) * 12 + p.price[2].v : 0;
-    const som = (u * ar) / 1e6;
+    const rawSom = (rawU * ar) / 1e6;
+    const anchoredSom = getFY2025AnchorSOM(p);
+    const som = Number.isFinite(anchoredSom) && anchoredSom > 0 ? anchoredSom : rawSom;
+    const u = som > 0 && ar > 0 ? (som * 1e6) / ar : rawU;
     const shareDriver = p.quantity.find(q => q.l.toLowerCase().includes("share") || q.l.toLowerCase().includes("win rate"));
-    const gammaShare = shareDriver ? shareDriver.v : (p.quantity[p.quantity.length - 1].isPct ? p.quantity[p.quantity.length - 1].v : 1);
+    const gammaShare = shareDriver && shareDriver.v > 0 ? shareDriver.v : 1;
     const tam = gammaShare > 0 ? som / gammaShare : 0;
     return { u, ar, tam, som };
 }
