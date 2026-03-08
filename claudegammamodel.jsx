@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Legend } from "recharts";
 
-import { useEffect } from "react";
 import {
     ACTUALS,
     PRODUCTS,
@@ -45,6 +44,15 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
     const [opxR, setOpxR] = useState(resolvedInitialSettings.opxR);
     const [taxR, setTaxR] = useState(resolvedInitialSettings.taxR);
     const [centralCost, setCentralCost] = useState(resolvedInitialSettings.centralCost);
+    const [isCompact, setIsCompact] = useState(() => typeof window !== "undefined" && window.innerWidth <= 900);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+        const updateCompactMode = () => setIsCompact(window.innerWidth <= 900);
+        updateCompactMode();
+        window.addEventListener("resize", updateCompactMode);
+        return () => window.removeEventListener("resize", updateCompactMode);
+    }, []);
 
     useEffect(() => {
         if (typeof onSettingsChange === "function") {
@@ -114,7 +122,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
     const a = ACTUALS;
 
     return (
-        <div style={{ background: bg, color: t1, fontFamily: "'IBM Plex Sans',system-ui,sans-serif", minHeight: "100vh", padding: "10px 12px", fontSize: 13 }}>
+        <div style={{ background: bg, color: t1, fontFamily: "'IBM Plex Sans',system-ui,sans-serif", minHeight: "100vh", padding: isCompact ? "8px 8px" : "10px 12px", fontSize: 13, overflowX: "hidden" }}>
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${bdr}` }}>
                 <div style={{ width: 32, height: 32, borderRadius: 6, background: "linear-gradient(135deg,#6366f1,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: "#fff" }}>Γ</div>
@@ -124,7 +132,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 </div>
             </div>
 
-            <div style={{ display: "flex", gap: 2, marginBottom: 12, background: "#060a14", borderRadius: 6, padding: 3 }}>
+            <div style={{ display: "flex", gap: 2, marginBottom: 12, background: "#060a14", borderRadius: 6, padding: 3, overflowX: isCompact ? "auto" : "visible" }}>
                 {TABS.map((t, i) => (
                     <button key={t} onClick={() => setTab(i)} style={{ flex: 1, padding: "6px 8px", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: tab === i ? 600 : 400, background: tab === i ? "#3b82f6" : "transparent", color: tab === i ? "#fff" : t2, transition: "all 0.15s" }}>{t}</button>
                 ))}
@@ -199,7 +207,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 </Box>
 
                 {/* Segment performance */}
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexDirection: isCompact ? "column" : "row" }}>
                     <Box style={{ flex: 1 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Segment Performance — FY2024 (£m)</div>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
@@ -296,7 +304,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                             })}
                         </tbody>
                     </table>
-                    <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 10, color: t2 }}>
+                    <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 10, color: t2, flexWrap: "wrap" }}>
                         <span>Total Cloud Seats: <b style={{ color: "#8b5cf6" }}>1,800k</b></span>
                         <span>PhoneLine+ Seats: <b style={{ color: "#6366f1" }}>45k</b> (+32% in H1)</span>
                         <span>Cisco Users: <b style={{ color: "#a855f7" }}>28k</b> (+75% in H1)</span>
@@ -323,8 +331,8 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
             {/* ═══ TAB 0: PRODUCT DRIVERS ═══ */}
             {tab === 0 && (() => {
                 const p = prods[sel], c = comp[sel];
-                return (<div style={{ display: "flex", gap: 10 }}>
-                    <div style={{ width: 175, flexShrink: 0 }}>
+                return (<div style={{ display: "flex", gap: 10, flexDirection: isCompact ? "column" : "row" }}>
+                    <div style={{ width: isCompact ? "100%" : 175, flexShrink: 0 }}>
                         <Box style={{ padding: 8 }}>
                             <div style={{ fontSize: 9, fontWeight: 600, color: t2, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>9 Solution Lines</div>
                             {CATS.map(cat => (
@@ -349,8 +357,8 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     <div style={{ fontSize: 9, color: t3, fontFamily: "'JetBrains Mono',monospace" }}>{p.eq}</div>
                                 </div>
                             </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "stretch", marginTop: 8 }}>
-                                <div style={{ flex: 1, minWidth: 250, marginRight: 16 }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "stretch", marginTop: 8, flexDirection: isCompact ? "column" : "row", gap: isCompact ? 8 : 0 }}>
+                                <div style={{ flex: 1, minWidth: isCompact ? 0 : 250, marginRight: isCompact ? 0 : 16 }}>
                                     {p.bcg && (
                                         <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid #10b981`, borderRadius: "0 4px 4px 0", fontSize: 10, color: t1, display: "inline-block", maxWidth: 400 }}>
                                             <span style={{ fontWeight: 600, color: "#10b981", marginRight: 4 }}>BCG Hypothesis:</span>
@@ -358,7 +366,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                         </div>
                                     )}
                                 </div>
-                                <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexShrink: 0 }}>
+                                <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexShrink: 0, flexWrap: isCompact ? "wrap" : "nowrap", width: isCompact ? "100%" : "auto" }}>
                                     <div style={{ padding: "6px 10px", background: "#f8fafc08", borderLeft: `3px solid ${t3}`, borderRadius: "0 4px 4px 0", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 90 }}>
                                         <div style={{ fontSize: 9, color: t2 }}>Model TAM</div>
                                         <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: t2, marginTop: 2 }}>£{c.tam.toFixed(0)}m</div>
@@ -374,7 +382,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                             </div>
                         </Box>
 
-                        <div style={{ display: "flex", gap: 10 }}>
+                        <div style={{ display: "flex", gap: 10, flexDirection: isCompact ? "column" : "row" }}>
                             <Box style={{ flex: 1 }}>
                                 <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Quantity Tree</div>
                                 {p.quantity.map((q, qi) => (
@@ -403,7 +411,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
 
                         <Box>
                             <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#3b82f6" }}>CAGR Build</div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: isCompact ? "1fr" : "1fr 1fr", gap: isCompact ? "6px 0" : "0 16px" }}>
                                 {p.cagr.map((cv, ci) => (
                                     <div key={ci} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 4 }}>
                                         <div style={{ flex: 1, fontSize: 10.5 }}>{cv.l}</div>
@@ -419,7 +427,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                                     <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: c.cagr >= 0 ? "#22c55e" : "#ef4444" }}>{fP(c.cagr)}</span>
                                 </div>
                             </div>
-                            <div style={{ display: "flex", gap: 14, marginTop: 4, fontSize: 10, color: t2 }}>
+                            <div style={{ display: "flex", gap: 14, marginTop: 4, fontSize: 10, color: t2, flexWrap: "wrap" }}>
                                 <span>Yr3: <b style={{ color: t1 }}>£{(c.som * Math.pow(1 + c.cagr, 3)).toFixed(0)}m</b></span>
                                 <span>Yr5: <b style={{ color: t1 }}>£{(c.som * Math.pow(1 + c.cagr, 5)).toFixed(0)}m</b></span>
                                 <span>Yr10: <b style={{ color: t1 }}>£{(c.som * Math.pow(1 + c.cagr, 10)).toFixed(0)}m</b></span>
@@ -459,7 +467,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
             {tab === 1 && (<>
                 <Box>
                     <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: "#f59e0b" }}>Projection Assumptions (applied to model SOM)</div>
-                    <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: isCompact ? 12 : 20, flexWrap: "wrap" }}>
                         {[{ l: "Blended GP Margin", v: gpM, s: setGpM, mn: 0.4, mx: 0.65 }, { l: "OpEx % Revenue", v: opxR, s: setOpxR, mn: 0.2, mx: 0.45 }, { l: "Tax Rate", v: taxR, s: setTaxR, mn: 0.2, mx: 0.35 }, { l: "Central Costs (£m)", v: centralCost, s: setCentralCost, mn: 10, mx: 40, abs: true }].map(x => (
                             <div key={x.l} style={{ flex: 1, minWidth: 120 }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: t2, marginBottom: 2 }}>
@@ -472,7 +480,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 </Box>
 
                 <Box>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, fontWeight: 600 }}>Actuals + Modelled Revenue by Product (£m)</span>
                         <span style={{ fontSize: 10, color: t2 }}>FY22–24 actual bars · FY25E–35E driver-tree projection</span>
                     </div>
@@ -574,7 +582,7 @@ export default function GammaModel({ initialSettings = DEFAULT_SETTINGS, onSetti
                 </Box>
 
                 {/* CAGR summary */}
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexDirection: isCompact ? "column" : "row" }}>
                     {[{ l: "3-Year (→FY2028)", n: 3 }, { l: "5-Year (→FY2030)", n: 5 }, { l: "10-Year (→FY2035)", n: 10 }].map(h => {
                         const revBase = totalModelSOM; const revEnd = comp.reduce((s, c) => s + c.som * Math.pow(1 + c.cagr, h.n), 0);
                         const rc = cagr(revBase, revEnd, h.n);
