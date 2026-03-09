@@ -694,14 +694,21 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                 <>
                     {/* KPI cards */}
                     <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                        {[
-                            { l: "FY2025 Revenue", v: "$2,945M", d: "+8% YoY", c: "#6366f1" },
-                            { l: "FY2025 NG OpInc", v: "$908M", d: "30.8% margin", c: "#f59e0b" },
-                            { l: "FY2025 Cloud Rev", v: "$2,238M", d: "76% of total", c: "#8b5cf6" },
-                            { l: "AI ARR (Q4 '25)", v: "$328M", d: "+66% YoY", c: "#ec4899" },
-                            { l: "FY2026E Guidance", v: "$3.1–3.2B", d: "Consensus", c: "#10b981" },
-                            { l: "Net Cash", v: "$417M", d: "Debt-free", c: "#22c55e" },
-                        ].map((k, i) => (
+                        {(() => {
+                            const fy25 = ACTUALS.group.find(x => x.year === 2025);
+                            const fy24 = ACTUALS.group.find(x => x.year === 2024);
+                            const kpis25 = ACTUALS.kpis[2025];
+                            const cons26 = ACTUALS.consensus2026;
+                            const M = n => `$${Math.round(n).toLocaleString()}M`;
+                            return [
+                                { l: "FY2025 Revenue", v: M(fy25.rev), d: `${fP((fy25.rev - fy24.rev) / fy24.rev)} YoY`, c: "#6366f1" },
+                                { l: "FY2025 NG OpInc", v: M(fy25.adjOpInc), d: `${fM(fy25.adjOpM)} margin`, c: "#f59e0b" },
+                                { l: "FY2025 Cloud Rev", v: M(fy25.cloudRev), d: `${Math.round((fy25.cloudRev / fy25.rev) * 100)}% of total`, c: "#8b5cf6" },
+                                { l: "AI ARR (Q4 '25)", v: M(kpis25.aiARR), d: `+${Math.round(kpis25.aiARRYoY * 100)}% YoY`, c: "#ec4899" },
+                                { l: "FY2026E Guidance", v: `$${(cons26.revLow / 1e3).toFixed(1)}–${(cons26.revHigh / 1e3).toFixed(1)}B`, d: "Consensus", c: "#10b981" },
+                                { l: "Net Cash", v: M(fy25.netCash), d: "Debt-free", c: "#22c55e" },
+                            ];
+                        })().map((k, i) => (
                             <Box key={i} style={{ flex: 1, minWidth: 120, borderTop: `3px solid ${k.c}`, textAlign: "center", padding: 10 }}>
                                 <div style={{ fontSize: 9, color: t2, textTransform: "uppercase", letterSpacing: 0.8 }}>{k.l}</div>
                                 <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: k.c, margin: "3px 0" }}>{k.v}</div>
@@ -841,18 +848,22 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                     <Box>
                         <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Key Performance Metrics</div>
                         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 10, color: t2 }}>
-                            {[
-                                { l: "Cloud ARR (Dec 2024)", v: "$2.1B", c: "#8b5cf6" },
-                                { l: "Cloud NRR", v: "109%", c: "#6366f1" },
-                                { l: "AI ARR (Q4 2025)", v: "$328M", c: "#ec4899" },
-                                { l: "AI ARR Growth", v: "+66% YoY", c: "#22c55e" },
-                                { l: "RPO (Total)", v: "$3.7B", c: "#3b82f6" },
-                                { l: "RPO (Cloud)", v: "$3.2B", c: "#8b5cf6" },
-                                { l: "Customers", v: "25,000+", c: t1 },
-                                { l: "Fortune 100", v: "85+", c: "#f59e0b" },
-                                { l: "Recurring %", v: "~90%", c: "#10b981" },
-                                { l: "Countries", v: "150+", c: "#0ea5e9" },
-                            ].map(k => (
+                            {(() => {
+                                const kpis24 = ACTUALS.kpis[2024];
+                                const kpis25 = ACTUALS.kpis[2025];
+                                return [
+                                    { l: "Cloud ARR (Dec 2024)", v: `$${(kpis24.cloudARR / 1e3).toFixed(1)}B`, c: "#8b5cf6" },
+                                    { l: "Cloud NRR", v: `${Math.round(kpis25.cloudNRR * 100)}%`, c: "#6366f1" },
+                                    { l: "AI ARR (Q4 2025)", v: `$${kpis25.aiARR}M`, c: "#ec4899" },
+                                    { l: "AI ARR Growth", v: `+${Math.round(kpis25.aiARRYoY * 100)}% YoY`, c: "#22c55e" },
+                                    { l: "RPO (Total)", v: `$${(kpis25.rpoTotal / 1e3).toFixed(1)}B`, c: "#3b82f6" },
+                                    { l: "RPO (Cloud)", v: `$${(kpis25.rpoCloud / 1e3).toFixed(1)}B`, c: "#8b5cf6" },
+                                    { l: "Customers", v: `${kpis24.customers.toLocaleString()}+`, c: t1 },
+                                    { l: "Fortune 100", v: `${kpis24.fortune100}+`, c: "#f59e0b" },
+                                    { l: "Recurring %", v: `~${Math.round(kpis24.recurringPct * 100)}%`, c: "#10b981" },
+                                    { l: "Countries", v: `${kpis24.countries}+`, c: "#0ea5e9" },
+                                ];
+                            })().map(k => (
                                 <span key={k.l}>{k.l}: <b style={{ color: k.c }}>{k.v}</b></span>
                             ))}
                         </div>

@@ -529,7 +529,7 @@ export function calcTAM(p) {
 }
 
 export function calcCAGR(p) {
-    return p.cagr.reduce((s, c) => s + c.v, 0);
+    return p.cagr.reduce((s, c) => (1 + s) * (1 + c.v) - 1, 0);
 }
 
 /* ═══════════════════════════════════════════
@@ -628,7 +628,7 @@ export function resolveInitialSettings(input = {}) {
     const inputProds = Array.isArray(input.prods) ? input.prods : null;
     const prods = inputProds
         ? PRODUCTS.map((defaultProd, index) => {
-            const matchingProd = inputProds.find((p) => p?.id === defaultProd.id) || inputProds[index];
+            const matchingProd = inputProds.find((p) => p?.id === defaultProd.id);
             if (!matchingProd) return defaultProd;
             return {
                 ...defaultProd,
