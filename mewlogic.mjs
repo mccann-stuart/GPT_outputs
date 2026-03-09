@@ -545,7 +545,7 @@ export function calcCAGR(p) {
      t₀ = inflection point (solved from base year)
 
    Calibration: given R(baseYear) = baseSom, solve for t₀:
-     t₀ = baseYear - (1/k) × ln(L / baseSom - 1)
+     t₀ = baseYear + (1/k) × ln(L / baseSom - 1)
 
    The S-curve naturally produces:
    - Slow initial growth (early adopters)
@@ -555,7 +555,7 @@ export function calcCAGR(p) {
 
 export function calcSCurveT0(baseSom, ceiling, k, baseYear) {
     if (ceiling <= 0 || baseSom <= 0 || baseSom >= ceiling || k === 0) return baseYear;
-    return baseYear - (1 / k) * Math.log(ceiling / baseSom - 1);
+    return baseYear + (1 / k) * Math.log(ceiling / baseSom - 1);
 }
 
 export function projectSCurve(baseSom, sCurve, baseYear, targetYear) {
