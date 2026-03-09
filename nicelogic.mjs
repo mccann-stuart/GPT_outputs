@@ -208,7 +208,7 @@ function getFY2025AnchorSOM(p) {
 }
 
 export function calcTAM(p) {
-    const rawU = p.quantity.reduce((a, q) => a * (q.isPct ? q.v : q.v), 1);
+    const rawU = p.quantity.reduce((a, q) => a * q.v, 1);
     const ar = (p.price.length >= 3) ? (p.price[0].v + p.price[1].v) * 12 + p.price[2].v : 0;
     const rawSom = (rawU * ar) / 1e6;
     const anchoredSom = getFY2025AnchorSOM(p);
@@ -221,7 +221,7 @@ export function calcTAM(p) {
 }
 
 export function calcCAGR(p) {
-    return p.cagr.reduce((s, c) => s + c.v, 0);
+    return p.cagr.reduce((s, c) => (1 + s) * (1 + c.v) - 1, 0);
 }
 
 /* ═══════════════════════════════════════════
@@ -246,7 +246,7 @@ export function resolveInitialSettings(input = {}) {
     const inputProds = Array.isArray(input.prods) ? input.prods : null;
     const prods = inputProds
         ? PRODUCTS.map((defaultProd, index) => {
-            const matchingProd = inputProds.find(p => p?.id === defaultProd.id) || inputProds[index];
+            const matchingProd = inputProds.find(p => p?.id === defaultProd.id);
             if (!matchingProd) return defaultProd;
             return {
                 ...defaultProd,

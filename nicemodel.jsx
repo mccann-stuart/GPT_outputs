@@ -86,9 +86,12 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
     const uC = useCallback((pi, ci, v) => setProds(p => { const n = [...p]; const x = { ...n[pi], cagr: [...n[pi].cagr] }; x.cagr[ci] = { ...x.cagr[ci], v }; n[pi] = x; return n; }), []);
 
     const comp = useMemo(() => prods.map(p => { const r = calcTAM(p); const c = calcCAGR(p); return { ...r, cagr: c }; }), [prods]);
-    const totalModelSOM = comp.reduce((s, c) => s + c.som, 0);
-    const fy2025ActualRevenue = ACTUALS.group.find(x => x.year === 2025)?.ngRev ?? ACTUALS.group.find(x => x.year === 2025)?.rev ?? 0;
-    const calibrationRatio = totalModelSOM > 0 ? fy2025ActualRevenue / totalModelSOM : 1;
+    const { totalModelSOM, fy2025ActualRevenue, calibrationRatio } = useMemo(() => {
+        const a25 = ACTUALS.group.find(x => x.year === 2025);
+        const actual = a25?.ngRev ?? a25?.rev ?? 0;
+        const total = comp.reduce((s, c) => s + c.som, 0);
+        return { totalModelSOM: total, fy2025ActualRevenue: actual, calibrationRatio: total > 0 ? actual / total : 1 };
+    }, [comp]);
     const calibratedBaseSom = useMemo(() => comp.map(c => c.som * calibrationRatio), [comp, calibrationRatio]);
     const totalCalibratedSOM = calibratedBaseSom.reduce((s, value) => s + value, 0);
 
@@ -160,14 +163,21 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
             {tab === 2 && (<>
                 {/* Group P&L headline KPIs */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                    {[
-                        { l: "FY2025 Revenue", v: "$2,945M", d: "+8% YoY", c: "#6366f1" },
-                        { l: "FY2025 Non-GAAP GM", v: "69.6%", d: "Non-GAAP basis", c: "#22c55e" },
-                        { l: "FY2025 Non-GAAP OpInc", v: "$908M", d: "30.8% margin", c: "#f59e0b" },
-                        { l: "FY2025 Cloud Rev", v: "$2,238M", d: "+13% YoY, 76% of total", c: "#8b5cf6" },
-                        { l: "AI ARR (Q4 2025)", v: "$328M", d: "+66% YoY", c: "#ec4899" },
-                        { l: "FY2026E Guidance", v: "$3.1–3.2B", d: "Revenue range", c: "#10b981" },
-                    ].map((k, i) => (
+                    {(() => {
+                        const fy25 = ACTUALS.group.find(x => x.year === 2025);
+                        const fy24 = ACTUALS.group.find(x => x.year === 2024);
+                        const km25 = ACTUALS.keyMetrics["FY2025"];
+                        const cons26 = ACTUALS.consensus2026;
+                        const M = n => `$${Math.round(n).toLocaleString()}M`;
+                        return [
+                            { l: "FY2025 Revenue", v: M(fy25.ngRev), d: `${fP((fy25.ngRev - fy24.ngRev) / fy24.ngRev)} YoY`, c: "#6366f1" },
+                            { l: "FY2025 Non-GAAP GM", v: fM(fy25.ngGPM), d: "Non-GAAP basis", c: "#22c55e" },
+                            { l: "FY2025 Non-GAAP OpInc", v: M(fy25.ngOpInc), d: `${fM(fy25.ngOpM)} margin`, c: "#f59e0b" },
+                            { l: "FY2025 Cloud Rev", v: M(fy25.cloudRev), d: `${fP((fy25.cloudRev - fy24.cloudRev) / fy24.cloudRev)} YoY, ${fM(fy25.cloudPct)} of total`, c: "#8b5cf6" },
+                            { l: "AI ARR (Q4 2025)", v: M(km25.aiARR), d: `+${Math.round(km25.aiARRGrowth * 100)}% YoY`, c: "#ec4899" },
+                            { l: "FY2026E Guidance", v: `$${(cons26.rev_low / 1e3).toFixed(1)}–${(cons26.rev_high / 1e3).toFixed(1)}B`, d: "Revenue range", c: "#10b981" },
+                        ];
+                    })().map((k, i) => (
                         <Box key={i} style={{ flex: 1, minWidth: 130, borderTop: `3px solid ${k.c}`, textAlign: "center", padding: 10 }}>
                             <div style={{ fontSize: 9, color: t2, textTransform: "uppercase", letterSpacing: 0.8 }}>{k.l}</div>
                             <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: k.c, margin: "3px 0" }}>{k.v}</div>
@@ -187,27 +197,31 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 ))}
                             </tr></thead>
                             <tbody>
-                                {[
-                                    { l: "Total Revenue", k: [2181.294, 2377.508, 2735.272, 2945.399], b: true },
-                                    { l: "  Cloud Revenue", k: [1295.323, 1581.825, 1984.16, 2238.421] },
-                                    { l: "  Services Revenue", k: [650.116, 641.387, 596.031, 559.989] },
-                                    { l: "  Product Revenue", k: [235.855, 154.296, 155.081, 146.989] },
-                                    { l: "Cloud % of Total", k: [0.5938323765618024, 0.6653289915323104, 0.7253976935383392, 0.7599720784858011], pct: true },
-                                    { l: "", k: [null, null, null, null] },
-                                    { l: "Gross Profit (Non-GAAP)", k: [1594.622, 1708.773, 1942.657, 2049.529], b: true },
-                                    { l: "Gross Margin (Non-GAAP)", k: [0.7310440499996792, 0.7187243954594474, 0.7102244310620662, 0.695840869097871], pct: true },
-                                    { l: "Operating Income (Non-GAAP)", k: [625.1, 703.8, 849.6, 907.9], b: true, hl: true },
-                                    { l: "Operating Margin (Non-GAAP)", k: [0.2865730158337207, 0.2960242405072875, 0.3106089632036595, 0.3082434671839028], pct: true },
-                                    { l: "Net Income (Non-GAAP)", k: [506.772, 582.67, 728.423, 778.814], b: true },
-                                    { l: "EPS (Non-GAAP, diluted)", k: [7.62, 8.79, 11.12, 12.30] },
-                                    { l: "", k: [null, null, null, null] },
-                                    { l: "GAAP Operating Income", k: [335.173, 435.227, 545.954, 645.758] },
-                                    { l: "GAAP Net Income", k: [265.945, 338.301, 442.588, 612.101], b: true },
-                                    { l: "GAAP EPS (diluted)", k: [4.02, 5.11, 6.76, 9.67] },
-                                    { l: "", k: [null, null, null, null] },
-                                    { l: "Cash Flow from Operations", k: [564, 563, 833, 717] },
-                                    { l: "Net Cash & Investments", k: [null, null, 1163, 417] },
-                                ].map((r, ri) => (
+                                {(() => {
+                                    const ys = [2022, 2023, 2024, 2025];
+                                    const G = f => ys.map(y => ACTUALS.group.find(x => x.year === y)?.[f] ?? null);
+                                    return [
+                                        { l: "Total Revenue", k: G("ngRev"), b: true },
+                                        { l: "  Cloud Revenue", k: ys.map(y => ACTUALS.revenueByModel[y]?.cloud ?? null) },
+                                        { l: "  Services Revenue", k: ys.map(y => ACTUALS.revenueByModel[y]?.services ?? null) },
+                                        { l: "  Product Revenue", k: ys.map(y => ACTUALS.revenueByModel[y]?.product ?? null) },
+                                        { l: "Cloud % of Total", k: G("cloudPct"), pct: true },
+                                        { l: "", k: [null, null, null, null] },
+                                        { l: "Gross Profit (Non-GAAP)", k: G("ngGP"), b: true },
+                                        { l: "Gross Margin (Non-GAAP)", k: G("ngGPM"), pct: true },
+                                        { l: "Operating Income (Non-GAAP)", k: G("ngOpInc"), b: true, hl: true },
+                                        { l: "Operating Margin (Non-GAAP)", k: G("ngOpM"), pct: true },
+                                        { l: "Net Income (Non-GAAP)", k: G("ngNI"), b: true },
+                                        { l: "EPS (Non-GAAP, diluted)", k: G("ngEPS") },
+                                        { l: "", k: [null, null, null, null] },
+                                        { l: "GAAP Operating Income", k: G("opInc") },
+                                        { l: "GAAP Net Income", k: G("ni"), b: true },
+                                        { l: "GAAP EPS (diluted)", k: G("eps") },
+                                        { l: "", k: [null, null, null, null] },
+                                        { l: "Cash Flow from Operations", k: G("cashOps") },
+                                        { l: "Net Cash & Investments", k: G("netCash") },
+                                    ];
+                                })().map((r, ri) => (
                                     <tr key={ri} style={{ borderBottom: `1px solid ${bdr}15`, background: r.hl ? "#6366f108" : "transparent" }}>
                                         <td style={{ padding: "3px 6px", fontWeight: r.b ? 700 : 400, fontSize: r.l.startsWith("  ") ? 10 : 11, color: r.l.startsWith("  ") ? t3 : t1 }}>{r.l}</td>
                                         {r.k.map((v, vi) => (
@@ -245,9 +259,10 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                                 ))}
                                 <tr style={{ borderTop: `2px solid ${bdr}`, fontWeight: 700 }}>
                                     <td style={{ padding: "4px 5px" }}>Total</td>
-                                    {[2181.294, 2377.508, 2735.272, 2945.399].map((v, i) => (
-                                        <td key={i} style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{v}</td>
-                                    ))}
+                                    {[2022, 2023, 2024, 2025].map(y => {
+                                        const g = ACTUALS.group.find(x => x.year === y);
+                                        return <td key={y} style={{ textAlign: "right", padding: "4px 5px", fontFamily: "'JetBrains Mono',monospace" }}>{g ? g.ngRev.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}</td>;
+                                    })}
                                 </tr>
                             </tbody>
                         </table>
@@ -281,28 +296,29 @@ export default function NICEModel({ initialSettings = DEFAULT_SETTINGS, onSettin
                 {/* Key metrics */}
                 <Box>
                     <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Key Performance Metrics</div>
-                    <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 10, color: t2 }}>
-                        <span>Cloud ARR (Dec 2024): <b style={{ color: "#8b5cf6" }}>$2.1B</b></span>
-                        <span>Cloud NRR: <b style={{ color: "#6366f1" }}>109%</b></span>
-                        <span>AI ARR (Q4 2025): <b style={{ color: "#ec4899" }}>$328M</b></span>
-                        <span>AI ARR Growth: <b style={{ color: "#22c55e" }}>+66% YoY</b></span>
-                        <span>Customers: <b style={{ color: t1 }}>25,000+</b></span>
-                        <span>Fortune 100: <b style={{ color: "#f59e0b" }}>85+</b></span>
-                        <span>Recurring %: <b style={{ color: "#10b981" }}>~90%</b></span>
-                        <span>Countries: <b style={{ color: "#0ea5e9" }}>150+</b></span>
-                    </div>
+                    {(() => {
+                        const km24 = ACTUALS.keyMetrics["FY2024"];
+                        const km25 = ACTUALS.keyMetrics["FY2025"];
+                        return (
+                            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 10, color: t2 }}>
+                                <span>Cloud ARR (Dec 2024): <b style={{ color: "#8b5cf6" }}>${(km24.cloudARR / 1e3).toFixed(1)}B</b></span>
+                                <span>Cloud NRR: <b style={{ color: "#6366f1" }}>{Math.round(km25.cloudNRR * 100)}%</b></span>
+                                <span>AI ARR (Q4 2025): <b style={{ color: "#ec4899" }}>${km25.aiARR}M</b></span>
+                                <span>AI ARR Growth: <b style={{ color: "#22c55e" }}>+{Math.round(km25.aiARRGrowth * 100)}% YoY</b></span>
+                                <span>Customers: <b style={{ color: t1 }}>{km24.customers.toLocaleString()}+</b></span>
+                                <span>Fortune 100: <b style={{ color: "#f59e0b" }}>{km24.fortune100}+</b></span>
+                                <span>Recurring %: <b style={{ color: "#10b981" }}>~{Math.round(km24.recurringPct * 100)}%</b></span>
+                                <span>Countries: <b style={{ color: "#0ea5e9" }}>{km24.countries}+</b></span>
+                            </div>
+                        );
+                    })()}
                 </Box>
 
                 {/* Historical chart */}
                 <Box>
                     <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Revenue & Non-GAAP Operating Income — Actuals ($M)</div>
                     <ResponsiveContainer width="100%" height={180}>
-                        <ComposedChart data={[
-                            { y: "FY22", rev: 2181.294, opInc: 625.1, gp: 1594.622 },
-                            { y: "FY23", rev: 2377.508, opInc: 703.8, gp: 1708.773 },
-                            { y: "FY24", rev: 2735.272, opInc: 849.6, gp: 1942.657 },
-                            { y: "FY25", rev: 2945.399, opInc: 907.9, gp: 2049.529 },
-                        ]} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+                        <ComposedChart data={ACTUALS.group.map(ag => ({ y: fyLabel(ag.year), rev: ag.ngRev, opInc: ag.ngOpInc, gp: ag.ngGP }))} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={bdr} />
                             <XAxis dataKey="y" tick={{ fill: t2, fontSize: 10 }} tickLine={false} />
                             <YAxis tick={{ fill: t2, fontSize: 10 }} tickLine={false} axisLine={false} />
