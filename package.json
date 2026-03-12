@@ -5,6 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "manifest": "node generate-manifest.mjs",
+    "predeploy": "npm run manifest",
     "test": "node test-gammamodel-logic.mjs && node test-truelayer-logic.mjs && node test_clone.mjs",
     "test:gamma": "node test-gammamodel-logic.mjs",
     "test:truelayer": "node test-truelayer-logic.mjs",

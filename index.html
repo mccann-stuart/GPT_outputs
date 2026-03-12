@@ -220,15 +220,7 @@
         </div>
         <div class="panel-row">
             <label for="jsx-select" style="font-weight: 500; font-size: 14px; color: #333;">Load Component:</label>
-            <select id="jsx-select">
-                <option value="truelayer-calculator-reverse-engineered.jsx">truelayer-calculator-reverse-engineered.jsx
-                </option>
-                <option value="gammamodel.jsx">gammamodel.jsx</option>
-                <option value="claudegammamodel.jsx">claudegammamodel.jsx</option>
-                <option value="nicemodel.jsx">nicemodel.jsx</option>
-                <option value="nice-model.jsx">nice-model.jsx</option>
-                <option value="mewmodel.jsx">mewmodel.jsx</option>
-            </select>
+            <select id="jsx-select"></select>
         </div>
         <div class="panel-row" style="justify-content: flex-start; gap: 8px;">
             <button id="reset-btn" type="button">Reset</button>
@@ -274,17 +266,22 @@
         const root = createRoot(rootElement);
         const DEFAULT_PAGE_BG = '#f4f4f9';
 
-        const ALLOWED_FILES = [
-            'truelayer-calculator-reverse-engineered.jsx',
-            'gammamodel.jsx',
-            'claudegammamodel.jsx',
-            'nicemodel.jsx',
-            'nice-model.jsx',
-            'mewmodel.jsx'
-        ];
+        let ALLOWED_FILES = [];
 
         const SHARE_PARAM = 'state';
-        const DEFAULT_FILE = 'truelayer-calculator-reverse-engineered.jsx';
+
+        async function fetchManifest() {
+            const res = await fetch('jsx-manifest.json');
+            if (!res.ok) throw new Error('Failed to load jsx-manifest.json');
+            ALLOWED_FILES = await res.json();
+            selectEl.innerHTML = '';
+            ALLOWED_FILES.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = f;
+                selectEl.appendChild(opt);
+            });
+        }
 
         const selectEl = document.getElementById('jsx-select');
         const resetBtn = document.getElementById('reset-btn');
@@ -606,18 +603,27 @@
 
 
 
-        // Initialize from URL param or default
-        const urlParams = new URLSearchParams(window.location.search);
-        const sharedState = parseSharedState(urlParams.get(SHARE_PARAM));
-        const fileParam = urlParams.get('file');
-        const initialFile = sharedState?.file || fileParam || DEFAULT_FILE;
-        const initialOverrides = sharedState?.overrides || {};
+        // Initialize: fetch manifest, then load from URL param or first file
+        (async () => {
+            try {
+                await fetchManifest();
+            } catch (err) {
+                root.render(React.createElement('div', { className: 'error-message' },
+                    `Failed to load JSX manifest:\n\n${err.message}`));
+                return;
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedState = parseSharedState(urlParams.get(SHARE_PARAM));
+            const fileParam = urlParams.get('file');
+            const initialFile = sharedState?.file || fileParam || ALLOWED_FILES[0];
+            const initialOverrides = sharedState?.overrides || {};
 
-        updateFileInputs(initialFile);
-        loadJSX(initialFile, {
-            initialSettingsOverrides: initialOverrides,
-            pushHistory: false
-        });
+            updateFileInputs(initialFile);
+            loadJSX(initialFile, {
+                initialSettingsOverrides: initialOverrides,
+                pushHistory: false
+            });
+        })();
     </script>
 </body>
 
