@@ -5,6 +5,7 @@ const frameworks = [
         id: 1,
         label: "1",
         title: "Customer Need Complexity",
+        axis: "Y-axis in the 2×2",
         subtitle: "What does the customer actually require?",
         color: "#1B4D3E",
         accent: "#2E8B6A",
@@ -68,6 +69,7 @@ const frameworks = [
         id: 3,
         label: "3",
         title: "Centralization Readiness",
+        axis: "X-axis in the 2×2",
         subtitle: "Is the market structurally ready to move?",
         color: "#5C1A3A",
         accent: "#C74B7A",
@@ -253,21 +255,6 @@ export default function App() {
                 {/* FRAMEWORKS TAB */}
                 {activeTab === "frameworks" && (
                     <div>
-                        <p
-                            style={{
-                                fontSize: 13,
-                                color: "#666",
-                                lineHeight: 1.65,
-                                marginBottom: 24,
-                                maxWidth: 680,
-                            }}
-                        >
-                            Each framework isolates one lens on the decision. Together they
-                            feed the 2×2: Framework 1 determines the Y-axis (need complexity),
-                            Framework 2 shapes channel-level actions, and Framework 3
-                            determines the X-axis (readiness to centralise).
-                        </p>
-
                         {/* Flow selector */}
                         <div
                             style={{
@@ -327,6 +314,22 @@ export default function App() {
                                         >
                                             {fw.title}
                                         </span>
+                                        {fw.axis && (
+                                            <span
+                                                style={{
+                                                    fontSize: 10.5,
+                                                    fontWeight: 700,
+                                                    color: fw.accent,
+                                                    background: `${fw.accent}12`,
+                                                    border: `1px solid ${fw.accent}28`,
+                                                    borderRadius: 999,
+                                                    padding: "4px 8px",
+                                                    whiteSpace: "nowrap",
+                                                }}
+                                            >
+                                                {fw.axis}
+                                            </span>
+                                        )}
                                     </button>
                                     {i < frameworks.length - 1 && (
                                         <span style={{ margin: "0 6px", color: "#CCC", fontSize: 18 }}>
@@ -367,6 +370,26 @@ export default function App() {
                                         >
                                             Framework {fw.label}
                                         </div>
+                                        {fw.axis && (
+                                            <div
+                                                style={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    padding: "4px 10px",
+                                                    borderRadius: 999,
+                                                    border: "1px solid rgba(255,255,255,0.22)",
+                                                    background: "rgba(255,255,255,0.10)",
+                                                    fontSize: 10.5,
+                                                    fontWeight: 700,
+                                                    letterSpacing: "0.8px",
+                                                    textTransform: "uppercase",
+                                                    color: "#FFF",
+                                                    marginBottom: 10,
+                                                }}
+                                            >
+                                                {fw.axis}
+                                            </div>
+                                        )}
                                         <h2
                                             style={{
                                                 fontFamily: "'Fraunces', Georgia, serif",
@@ -474,74 +497,27 @@ export default function App() {
                                     </div>
                                 </div>
                             ))}
+
+                        <p
+                            style={{
+                                fontSize: 13,
+                                color: "#666",
+                                lineHeight: 1.65,
+                                margin: "20px 0 0",
+                                maxWidth: 680,
+                            }}
+                        >
+                            Each framework isolates one lens on the decision. Together they
+                            feed the 2×2: Framework 1 determines the Y-axis (need complexity),
+                            Framework 2 shapes channel-level actions, and Framework 3
+                            determines the X-axis (readiness to centralise).
+                        </p>
                     </div>
                 )}
 
                 {/* MATRIX TAB */}
                 {activeTab === "matrix" && (
                     <div>
-                        <p
-                            style={{
-                                fontSize: 13,
-                                color: "#666",
-                                lineHeight: 1.65,
-                                marginBottom: 8,
-                                maxWidth: 680,
-                            }}
-                        >
-                            The two axes synthesise the three frameworks:
-                        </p>
-                        <div style={{ marginBottom: 28, maxWidth: 700, marginLeft: 48 }}>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 16,
-                                    fontSize: 12.5,
-                                    color: "#444",
-                                    lineHeight: 1.6,
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        flex: 1,
-                                        padding: "12px 16px",
-                                        background: "#FFF",
-                                        borderRadius: 8,
-                                        border: "1px solid #E4E4E0",
-                                    }}
-                                >
-                                    <strong style={{ color: "#1A1A1A" }}>Y-axis</strong> —{" "}
-                                    <em>Customer Need Complexity</em> (from Framework 1). What
-                                    share of interactions are relational/consultative vs.
-                                    transactional/procedural?
-                                </div>
-                                <div
-                                    style={{
-                                        flex: 1,
-                                        padding: "12px 16px",
-                                        background: "#FFF",
-                                        borderRadius: 8,
-                                        border: "1px solid #E4E4E0",
-                                    }}
-                                >
-                                    <strong style={{ color: "#1A1A1A" }}>X-axis</strong> —{" "}
-                                    <em>Centralisation Readiness</em> (from Framework 3). Are
-                                    regulatory, tech, talent, and commercial conditions met?
-                                </div>
-                            </div>
-                            <p
-                                style={{
-                                    fontSize: 12,
-                                    color: "#999",
-                                    marginTop: 10,
-                                    lineHeight: 1.5,
-                                }}
-                            >
-                                Framework 2 (Channel Substitutability) determines <em>how</em>{" "}
-                                to execute within whichever quadrant a market lands in.
-                            </p>
-                        </div>
-
                         {/* Matrix */}
                         <div style={{ position: "relative", maxWidth: 700, marginLeft: 48 }}>
                             {/* Y label */}
@@ -735,6 +711,68 @@ export default function App() {
                             >
                                 Centralisation Readiness (Fw 3)
                             </div>
+                        </div>
+
+                        <p
+                            style={{
+                                fontSize: 13,
+                                color: "#666",
+                                lineHeight: 1.65,
+                                margin: "24px 0 8px 48px",
+                                maxWidth: 680,
+                            }}
+                        >
+                            The two axes synthesise the three frameworks:
+                        </p>
+                        <div style={{ marginBottom: 28, maxWidth: 700, marginLeft: 48 }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 16,
+                                    fontSize: 12.5,
+                                    color: "#444",
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        flex: 1,
+                                        padding: "12px 16px",
+                                        background: "#FFF",
+                                        borderRadius: 8,
+                                        border: "1px solid #E4E4E0",
+                                    }}
+                                >
+                                    <strong style={{ color: "#1A1A1A" }}>Y-axis</strong> —{" "}
+                                    <em>Customer Need Complexity</em> (from Framework 1). What
+                                    share of interactions are relational/consultative vs.
+                                    transactional/procedural?
+                                </div>
+                                <div
+                                    style={{
+                                        flex: 1,
+                                        padding: "12px 16px",
+                                        background: "#FFF",
+                                        borderRadius: 8,
+                                        border: "1px solid #E4E4E0",
+                                    }}
+                                >
+                                    <strong style={{ color: "#1A1A1A" }}>X-axis</strong> —{" "}
+                                    <em>Centralisation Readiness</em> (from Framework 3). Are
+                                    regulatory, tech, talent, and commercial conditions met?
+                                </div>
+                            </div>
+                            <p
+                                style={{
+                                    fontSize: 12,
+                                    color: "#999",
+                                    marginTop: 10,
+                                    lineHeight: 1.5,
+                                }}
+                            >
+                                Framework 2 (Channel Substitutability) determines <em>how</em>{" "}
+                                to execute within whichever quadrant a market lands in.
+                            </p>
                         </div>
 
                         {/* How to use */}
