@@ -156,6 +156,7 @@ export default function App() {
 
     return (
         <div
+            className="frame-app"
             style={{
                 fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
                 background: "#FAFAF8",
@@ -167,17 +168,260 @@ export default function App() {
                 href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap"
                 rel="stylesheet"
             />
+            <style>{`
+                .matrix-mobileAxes {
+                    display: none;
+                }
+
+                @media (max-width: 480px) {
+                    .frame-header {
+                        padding: 24px 16px 20px !important;
+                    }
+
+                    .frame-headerInner,
+                    .frame-tabsShell,
+                    .frame-body {
+                        max-width: none !important;
+                    }
+
+                    .frame-tabsShell,
+                    .frame-body {
+                        padding-left: 16px !important;
+                        padding-right: 16px !important;
+                    }
+
+                    .frame-eyebrow {
+                        font-size: 10px !important;
+                        letter-spacing: 2px !important;
+                    }
+
+                    .frame-title {
+                        font-size: 22px !important;
+                        line-height: 1.18 !important;
+                    }
+
+                    .frame-intro {
+                        font-size: 12.5px !important;
+                        max-width: none !important;
+                    }
+
+                    .frame-tabs {
+                        display: grid !important;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 8px !important;
+                        margin-top: 8px !important;
+                    }
+
+                    .frame-tabButton {
+                        width: 100%;
+                        min-width: 0;
+                        min-height: 44px;
+                        padding: 12px 10px !important;
+                        font-size: 12px !important;
+                        line-height: 1.25;
+                        text-align: center;
+                        display: flex !important;
+                        align-items: center;
+                        justify-content: center;
+                        white-space: normal;
+                    }
+
+                    .framework-flow {
+                        flex-direction: column !important;
+                        align-items: stretch !important;
+                        gap: 10px !important;
+                        margin-bottom: 20px !important;
+                    }
+
+                    .framework-flowItem {
+                        width: 100%;
+                    }
+
+                    .framework-flowButton {
+                        width: 100%;
+                        min-height: 52px;
+                        padding: 12px 14px !important;
+                        align-items: flex-start !important;
+                        gap: 8px !important;
+                        flex-wrap: wrap;
+                    }
+
+                    .framework-flowTitle {
+                        white-space: normal !important;
+                        line-height: 1.35;
+                        flex: 1 1 140px;
+                        min-width: 0;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .framework-axisBadge {
+                        white-space: normal !important;
+                        flex-basis: 100%;
+                        margin-left: 34px;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .framework-flowArrow {
+                        display: none !important;
+                    }
+
+                    .framework-cardHeader {
+                        padding: 18px 16px !important;
+                    }
+
+                    .framework-cardTitle {
+                        font-size: 19px !important;
+                        line-height: 1.2 !important;
+                    }
+
+                    .framework-cardSubtitle {
+                        font-size: 12px !important;
+                    }
+
+                    .framework-cardBody {
+                        padding: 18px 16px !important;
+                    }
+
+                    .framework-dimensions {
+                        grid-template-columns: 1fr !important;
+                        gap: 10px !important;
+                    }
+
+                    .framework-dimensionCard {
+                        padding: 14px !important;
+                    }
+
+                    .framework-mece,
+                    .framework-synthesis {
+                        font-size: 12.5px !important;
+                        max-width: none !important;
+                    }
+
+                    .framework-mece {
+                        padding: 12px 14px !important;
+                    }
+
+                    .matrix-mobileAxes {
+                        display: grid;
+                        gap: 8px;
+                        margin-bottom: 10px;
+                    }
+
+                    .matrix-mobileAxisChip {
+                        padding: 10px 12px;
+                        background: #fff;
+                        border: 1px solid #e4e4e0;
+                        border-radius: 8px;
+                        font-size: 11px;
+                        color: #555;
+                        line-height: 1.45;
+                    }
+
+                    .matrix-shell,
+                    .matrix-explainer,
+                    .matrix-howto {
+                        max-width: none !important;
+                        margin-left: 0 !important;
+                    }
+
+                    .matrix-yLabel,
+                    .matrix-yMarkers,
+                    .matrix-xMarkers {
+                        display: none !important;
+                    }
+
+                    .matrix-grid {
+                        gap: 2px !important;
+                    }
+
+                    .matrix-quadrant {
+                        min-height: 156px !important;
+                        padding: 14px 10px !important;
+                        border-left-width: 3px !important;
+                    }
+
+                    .matrix-quadrantHeader {
+                        align-items: flex-start !important;
+                        gap: 8px !important;
+                    }
+
+                    .matrix-qId {
+                        width: 22px !important;
+                        height: 22px !important;
+                        font-size: 9px !important;
+                    }
+
+                    .matrix-qTitle {
+                        font-size: 13px !important;
+                        line-height: 1.2 !important;
+                        overflow-wrap: anywhere;
+                    }
+
+                    .matrix-qAction {
+                        font-size: 10px !important;
+                        line-height: 1.35 !important;
+                    }
+
+                    .matrix-qDesc {
+                        font-size: 11px !important;
+                        line-height: 1.45 !important;
+                    }
+
+                    .matrix-qTags {
+                        flex-wrap: wrap;
+                        gap: 4px !important;
+                        margin-top: 10px !important;
+                    }
+
+                    .matrix-qTag {
+                        font-size: 9px !important;
+                        padding: 3px 7px !important;
+                    }
+
+                    .matrix-xLabel {
+                        margin-top: 10px !important;
+                        font-size: 9.5px !important;
+                        letter-spacing: 1.5px !important;
+                    }
+
+                    .matrix-explainerIntro {
+                        margin: 18px 0 8px !important;
+                        max-width: none !important;
+                    }
+
+                    .matrix-explainerRow {
+                        flex-direction: column !important;
+                        gap: 10px !important;
+                    }
+
+                    .matrix-explainerCard {
+                        padding: 10px 12px !important;
+                        font-size: 12px !important;
+                    }
+
+                    .matrix-howto {
+                        margin-top: 24px !important;
+                        padding: 16px !important;
+                    }
+
+                    .matrix-howtoCopy {
+                        font-size: 12px !important;
+                    }
+                }
+            `}</style>
 
             {/* Header */}
             <div
+                className="frame-header"
                 style={{
                     background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)",
                     padding: "36px 40px 28px",
                     borderBottom: "3px solid #E8C547",
                 }}
             >
-                <div style={{ maxWidth: 960, margin: "0 auto" }}>
+                <div className="frame-headerInner" style={{ maxWidth: 960, margin: "0 auto" }}>
                     <div
+                        className="frame-eyebrow"
                         style={{
                             fontFamily: "'Fraunces', Georgia, serif",
                             fontSize: 11,
@@ -190,6 +434,7 @@ export default function App() {
                         Strategic Decision Frameworks
                     </div>
                     <h1
+                        className="frame-title"
                         style={{
                             fontFamily: "'Fraunces', Georgia, serif",
                             fontSize: 26,
@@ -202,6 +447,7 @@ export default function App() {
                         Centralising Human Support Presence
                     </h1>
                     <p
+                        className="frame-intro"
                         style={{
                             color: "#A0A0A0",
                             fontSize: 13.5,
@@ -218,13 +464,14 @@ export default function App() {
             </div>
 
             {/* Tabs */}
-            <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 40px" }}>
-                <div style={{ display: "flex", gap: 0, marginTop: -1 }}>
+            <div className="frame-tabsShell" style={{ maxWidth: 960, margin: "0 auto", padding: "0 40px" }}>
+                <div className="frame-tabs" style={{ display: "flex", gap: 0, marginTop: -1 }}>
                     {[
                         { key: "frameworks", label: "Three Frameworks" },
                         { key: "matrix", label: "Synthesised 2×2" },
                     ].map((tab) => (
                         <button
+                            className="frame-tabButton"
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
                             style={{
@@ -251,12 +498,13 @@ export default function App() {
             </div>
 
             {/* Body */}
-            <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 40px 60px" }}>
+            <div className="frame-body" style={{ maxWidth: 960, margin: "0 auto", padding: "28px 40px 60px" }}>
                 {/* FRAMEWORKS TAB */}
                 {activeTab === "frameworks" && (
                     <div>
                         {/* Flow selector */}
                         <div
+                            className="framework-flow"
                             style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -265,8 +513,13 @@ export default function App() {
                             }}
                         >
                             {frameworks.map((fw, i) => (
-                                <div key={fw.id} style={{ display: "flex", alignItems: "center" }}>
+                                <div
+                                    key={fw.id}
+                                    className="framework-flowItem"
+                                    style={{ display: "flex", alignItems: "center" }}
+                                >
                                     <button
+                                        className="framework-flowButton"
                                         onClick={() => setExpandedFw(fw.id)}
                                         style={{
                                             display: "flex",
@@ -305,6 +558,7 @@ export default function App() {
                                             {fw.label}
                                         </span>
                                         <span
+                                            className="framework-flowTitle"
                                             style={{
                                                 fontSize: 12.5,
                                                 fontWeight: 600,
@@ -316,6 +570,7 @@ export default function App() {
                                         </span>
                                         {fw.axis && (
                                             <span
+                                                className="framework-axisBadge"
                                                 style={{
                                                     fontSize: 10.5,
                                                     fontWeight: 700,
@@ -332,7 +587,10 @@ export default function App() {
                                         )}
                                     </button>
                                     {i < frameworks.length - 1 && (
-                                        <span style={{ margin: "0 6px", color: "#CCC", fontSize: 18 }}>
+                                        <span
+                                            className="framework-flowArrow"
+                                            style={{ margin: "0 6px", color: "#CCC", fontSize: 18 }}
+                                        >
                                             →
                                         </span>
                                     )}
@@ -346,6 +604,7 @@ export default function App() {
                             .map((fw) => (
                                 <div
                                     key={fw.id}
+                                    className="framework-card"
                                     style={{
                                         background: "#FFF",
                                         borderRadius: 10,
@@ -354,6 +613,7 @@ export default function App() {
                                     }}
                                 >
                                     <div
+                                        className="framework-cardHeader"
                                         style={{
                                             background: `linear-gradient(135deg, ${fw.color} 0%, ${fw.accent} 100%)`,
                                             padding: "20px 28px",
@@ -372,6 +632,7 @@ export default function App() {
                                         </div>
                                         {fw.axis && (
                                             <div
+                                                className="framework-cardAxis"
                                                 style={{
                                                     display: "inline-flex",
                                                     alignItems: "center",
@@ -391,6 +652,7 @@ export default function App() {
                                             </div>
                                         )}
                                         <h2
+                                            className="framework-cardTitle"
                                             style={{
                                                 fontFamily: "'Fraunces', Georgia, serif",
                                                 fontSize: 21,
@@ -402,6 +664,7 @@ export default function App() {
                                             {fw.title}
                                         </h2>
                                         <p
+                                            className="framework-cardSubtitle"
                                             style={{
                                                 fontSize: 13,
                                                 color: "rgba(255,255,255,0.8)",
@@ -413,7 +676,7 @@ export default function App() {
                                         </p>
                                     </div>
 
-                                    <div style={{ padding: "24px 28px" }}>
+                                    <div className="framework-cardBody" style={{ padding: "24px 28px" }}>
                                         <p
                                             style={{
                                                 fontSize: 13,
@@ -426,6 +689,7 @@ export default function App() {
                                         </p>
 
                                         <div
+                                            className="framework-dimensions"
                                             style={{
                                                 display: "grid",
                                                 gridTemplateColumns:
@@ -437,6 +701,7 @@ export default function App() {
                                             {fw.dimensions.map((d, i) => (
                                                 <div
                                                     key={i}
+                                                    className="framework-dimensionCard"
                                                     style={{
                                                         padding: 18,
                                                         borderRadius: 8,
@@ -481,6 +746,7 @@ export default function App() {
                                         </div>
 
                                         <div
+                                            className="framework-mece"
                                             style={{
                                                 padding: "12px 16px",
                                                 borderRadius: 6,
@@ -499,6 +765,7 @@ export default function App() {
                             ))}
 
                         <p
+                            className="framework-synthesis"
                             style={{
                                 fontSize: 13,
                                 color: "#666",
@@ -518,10 +785,21 @@ export default function App() {
                 {/* MATRIX TAB */}
                 {activeTab === "matrix" && (
                     <div>
+                        <div className="matrix-mobileAxes">
+                            <div className="matrix-mobileAxisChip">
+                                <strong style={{ color: "#1A1A1A" }}>Y-axis</strong> — Customer Need
+                                Complexity (High to Low)
+                            </div>
+                            <div className="matrix-mobileAxisChip">
+                                <strong style={{ color: "#1A1A1A" }}>X-axis</strong> — Centralisation
+                                Readiness (Low to High)
+                            </div>
+                        </div>
                         {/* Matrix */}
-                        <div style={{ position: "relative", maxWidth: 700, marginLeft: 48 }}>
+                        <div className="matrix-shell" style={{ position: "relative", maxWidth: 700, marginLeft: 48 }}>
                             {/* Y label */}
                             <div
+                                className="matrix-yLabel"
                                 style={{
                                     position: "absolute",
                                     left: -42,
@@ -541,6 +819,7 @@ export default function App() {
 
                             {/* Y markers */}
                             <div
+                                className="matrix-yMarkers"
                                 style={{
                                     position: "absolute",
                                     left: -16,
@@ -561,6 +840,7 @@ export default function App() {
 
                             {/* X markers */}
                             <div
+                                className="matrix-xMarkers"
                                 style={{
                                     display: "flex",
                                     justifyContent: "space-between",
@@ -577,6 +857,7 @@ export default function App() {
 
                             {/* Grid */}
                             <div
+                                className="matrix-grid"
                                 style={{
                                     display: "grid",
                                     gridTemplateColumns: "1fr 1fr",
@@ -590,6 +871,7 @@ export default function App() {
                             >
                                 {quadrants.map((q) => (
                                     <div
+                                        className="matrix-quadrant"
                                         key={q.id}
                                         onMouseEnter={() => setHoveredQ(q.id)}
                                         onMouseLeave={() => setHoveredQ(null)}
@@ -608,6 +890,7 @@ export default function App() {
                                         }}
                                     >
                                         <div
+                                            className="matrix-quadrantHeader"
                                             style={{
                                                 display: "flex",
                                                 alignItems: "center",
@@ -616,6 +899,7 @@ export default function App() {
                                             }}
                                         >
                                             <span
+                                                className="matrix-qId"
                                                 style={{
                                                     width: 26,
                                                     height: 26,
@@ -633,6 +917,7 @@ export default function App() {
                                                 {q.id}
                                             </span>
                                             <span
+                                                className="matrix-qTitle"
                                                 style={{
                                                     fontFamily: "'Fraunces', Georgia, serif",
                                                     fontSize: 15.5,
@@ -644,6 +929,7 @@ export default function App() {
                                             </span>
                                         </div>
                                         <div
+                                            className="matrix-qAction"
                                             style={{
                                                 fontSize: 11.5,
                                                 fontWeight: 700,
@@ -655,6 +941,7 @@ export default function App() {
                                             {q.action}
                                         </div>
                                         <p
+                                            className="matrix-qDesc"
                                             style={{
                                                 fontSize: 12,
                                                 color: "#555",
@@ -665,8 +952,9 @@ export default function App() {
                                         >
                                             {q.desc}
                                         </p>
-                                        <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
+                                        <div className="matrix-qTags" style={{ display: "flex", gap: 6, marginTop: 14 }}>
                                             <span
+                                                className="matrix-qTag"
                                                 style={{
                                                     fontSize: 9.5,
                                                     padding: "3px 9px",
@@ -680,6 +968,7 @@ export default function App() {
                                                 Need: {q.tagY}
                                             </span>
                                             <span
+                                                className="matrix-qTag"
                                                 style={{
                                                     fontSize: 9.5,
                                                     padding: "3px 9px",
@@ -699,6 +988,7 @@ export default function App() {
 
                             {/* X label */}
                             <div
+                                className="matrix-xLabel"
                                 style={{
                                     textAlign: "center",
                                     fontSize: 10.5,
@@ -714,6 +1004,7 @@ export default function App() {
                         </div>
 
                         <p
+                            className="matrix-explainerIntro"
                             style={{
                                 fontSize: 13,
                                 color: "#666",
@@ -724,8 +1015,9 @@ export default function App() {
                         >
                             The two axes synthesise the three frameworks:
                         </p>
-                        <div style={{ marginBottom: 28, maxWidth: 700, marginLeft: 48 }}>
+                        <div className="matrix-explainer" style={{ marginBottom: 28, maxWidth: 700, marginLeft: 48 }}>
                             <div
+                                className="matrix-explainerRow"
                                 style={{
                                     display: "flex",
                                     gap: 16,
@@ -735,6 +1027,7 @@ export default function App() {
                                 }}
                             >
                                 <div
+                                    className="matrix-explainerCard"
                                     style={{
                                         flex: 1,
                                         padding: "12px 16px",
@@ -749,6 +1042,7 @@ export default function App() {
                                     transactional/procedural?
                                 </div>
                                 <div
+                                    className="matrix-explainerCard"
                                     style={{
                                         flex: 1,
                                         padding: "12px 16px",
@@ -777,6 +1071,7 @@ export default function App() {
 
                         {/* How to use */}
                         <div
+                            className="matrix-howto"
                             style={{
                                 marginTop: 32,
                                 padding: "20px 24px",
@@ -799,7 +1094,10 @@ export default function App() {
                             >
                                 How to use
                             </h4>
-                            <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.65 }}>
+                            <div
+                                className="matrix-howtoCopy"
+                                style={{ fontSize: 12.5, color: "#555", lineHeight: 1.65 }}
+                            >
                                 <p style={{ margin: "0 0 8px" }}>
                                     <strong>1.</strong> Score each market on Framework 1 (need
                                     complexity mix) to place it on the Y-axis.
