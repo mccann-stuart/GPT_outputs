@@ -1,7 +1,3 @@
-Below is an expanded PRD you can use as a stronger prompt/spec for building a .ipynb simulation exercise.
-
-⸻
-
 PRD: UK Income Tax Reform Simulation Notebook
 
 1. Objective
