@@ -1,5 +1,15 @@
 # Changelog
 
+## Week of 2026-03-14 to 2026-03-20
+
+### Highlights
+- Added a new `frame.jsx` component for strategic decision frameworks and registered it in `jsx-manifest.json`.
+- Refined the framework synthesis presentation with updated layout and clearer axis labeling.
+- Improved the frame UI for iPhone-sized screens.
+
+### Key PRs
+- No linked GitHub PRs were present in repo history for this week's commits.
+
 ## Week of 2026-03-07 to 2026-03-13
 
 ### Highlights
