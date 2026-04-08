@@ -10,8 +10,9 @@ This project renders consulting deliverables as webpages, with JSX and `.mjs` fi
 
 ## Local checks
 - Run all logic checks: `npm test`
-- Run a specific suite:
-  - `npm run test:gamma`
-  - `npm run test:truelayer`
-  - `npm run test:clone`
+- Run only the simulation/Worker suites: `npm run test:simulate`
 - Run the clone benchmark: `npm run bench:clone`
+
+## Deployment build
+- `npm run build:public` generates the deployable static asset set under `public/`.
+- The simulation UI remains public, but the `simulate` engine now runs behind `POST /api/simulate` in the Worker.

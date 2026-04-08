@@ -1,0 +1,44 @@
+import { normalizeSimulationParams, runSimulation } from '../server/simulate-engine.mjs';
+
+function json(body, init = {}) {
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      ...(init.headers || {}),
+    },
+  });
+}
+
+function errorResponse(status, message) {
+  return json({ error: message }, { status });
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === '/api/simulate') {
+      if (request.method !== 'POST') {
+        return errorResponse(405, 'Method not allowed');
+      }
+
+      let payload;
+      try {
+        payload = await request.json();
+      } catch {
+        return errorResponse(400, 'Request body must be valid JSON');
+      }
+
+      try {
+        const params = normalizeSimulationParams(payload);
+        const result = runSimulation(params);
+        return json(result);
+      } catch (error) {
+        return errorResponse(400, error instanceof Error ? error.message : 'Invalid simulation payload');
+      }
+    }
+
+    return env.ASSETS.fetch(request);
+  },
+};

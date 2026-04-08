@@ -6,11 +6,10 @@
   "type": "module",
   "scripts": {
     "manifest": "node generate-manifest.mjs",
-    "predeploy": "npm run manifest",
-    "test": "node test-gammamodel-logic.mjs && node test-truelayer-logic.mjs && node test_clone.mjs",
-    "test:gamma": "node test-gammamodel-logic.mjs",
-    "test:truelayer": "node test-truelayer-logic.mjs",
-    "test:clone": "node test_clone.mjs",
+    "build:public": "node prepare-public.mjs",
+    "predeploy": "npm run build:public",
+    "test": "node --test test/*.test.mjs",
+    "test:simulate": "node --test test/simulate-engine.test.mjs test/worker.test.mjs",
     "bench:clone": "node benchmark_clone.mjs"
   },
   "license": "ISC"
