@@ -1,4 +1,4 @@
-import { normalizeSimulationParams, runSimulation } from '../server/simulate-engine.mjs';
+import { normalizeSimulationParams, runSimulation, computePreview } from '../server/simulate-engine.mjs';
 
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
@@ -36,6 +36,26 @@ export default {
         return json(result);
       } catch (error) {
         return errorResponse(400, error instanceof Error ? error.message : 'Invalid simulation payload');
+      }
+    }
+
+    if (url.pathname === '/api/preview') {
+      if (request.method !== 'POST') {
+        return errorResponse(405, 'Method not allowed');
+      }
+
+      let payload;
+      try {
+        payload = await request.json();
+      } catch {
+        return errorResponse(400, 'Request body must be valid JSON');
+      }
+
+      try {
+        const result = computePreview(payload);
+        return json(result);
+      } catch (error) {
+        return errorResponse(400, error instanceof Error ? error.message : 'Invalid preview payload');
       }
     }
 

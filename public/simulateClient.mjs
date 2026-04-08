@@ -1,8 +1,10 @@
-// 'use strict';
+'use strict';
 
 let simResults = null;
 let simParams = null;
 let actLog = [];
+let _previewData = null;
+let _previewTimer = null;
 let animState = {
   running: false,
   raf: null,
@@ -45,50 +47,7 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-function callRate(t) {
-  const G = (x, mu, s) => Math.exp(-((x - mu) ** 2) / (2 * s * s));
-  return Math.max(
-    0,
-    0.18
-    + 0.82 * G(t, 0.27, 0.115)
-    + 0.55 * G(t, 0.72, 0.10)
-    - 0.16 * G(t, 0.50, 0.055),
-  );
-}
 
-function makeBreaks(numAgents, shiftStart, shiftLength, breakDur, numBreaks) {
-  const result = Array.from({ length: numAgents }, () => []);
-  if (numBreaks === 0 || numAgents === 0 || breakDur <= 0) {
-    return result;
-  }
-
-  const shiftEnd = shiftStart + shiftLength;
-  const windowStart = shiftStart + 60;
-  const windowEnd = shiftEnd - 60;
-  const usable = windowEnd - windowStart;
-
-  if (usable <= 0) {
-    return result;
-  }
-
-  for (let b = 0; b < numBreaks; b++) {
-    const subW = usable / numBreaks;
-    const subStart = windowStart + b * subW;
-    const latestStart = subStart + subW - breakDur;
-    const spread = Math.max(0, latestStart - subStart);
-
-    for (let a = 0; a < numAgents; a++) {
-      const frac = numAgents > 1 ? a / (numAgents - 1) : 0;
-      const t = subStart + frac * spread;
-      result[a].push({ s: t, e: Math.min(t + breakDur, shiftEnd) });
-    }
-  }
-
-  for (const brks of result) {
-    brks.sort((a, b) => a.s - b.s);
-  }
-  return result;
-}
 
 function getParams() {
   return {
@@ -606,7 +565,7 @@ export function initInputs() {
   }
 }
 
-export function drawPreview() {
+function renderPreviewCanvas(p, data) {
   const canvas = document.getElementById('call-preview');
   const W = canvas.parentElement.clientWidth - 40 || 600;
   const H = 90;
@@ -616,15 +575,14 @@ export function drawPreview() {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  const p = getParams();
   const pad = { l: 36, r: 10, t: 8, b: 24 };
   const iW = W - pad.l - pad.r;
   const iH = H - pad.t - pad.b;
 
   ctx.clearRect(0, 0, W, H);
 
-  const N = 200;
-  const vals = Array.from({ length: N + 1 }, (_, i) => Math.max(0, callRate(i / N)));
+  const vals = data.curvePoints;
+  const N = vals.length - 1;
   const maxV = Math.max(...vals);
 
   const path = new Path2D();
@@ -660,24 +618,18 @@ export function drawPreview() {
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  if (p.numBreaks > 0 && p.numAgents > 0) {
-    const allBrks = makeBreaks(p.numAgents, p.shiftStart, p.shiftLength, p.breakDur, p.numBreaks);
-    const last = allBrks[allBrks.length - 1];
-    for (let b = 0; b < p.numBreaks; b++) {
-      const spanS = allBrks[0][b].s;
-      const spanE = last[b].e;
-      const x1 = pad.l + ((spanS - p.shiftStart) / p.shiftLength) * iW;
-      const x2 = pad.l + ((spanE - p.shiftStart) / p.shiftLength) * iW;
-      ctx.fillStyle = '#f59e0b18';
-      ctx.fillRect(x1, pad.t, x2 - x1, iH);
-      ctx.strokeStyle = '#f59e0b50';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x1, pad.t, x2 - x1, iH);
-      ctx.fillStyle = '#f59e0bcc';
-      ctx.font = '9px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Break ${b + 1}`, (x1 + x2) / 2, pad.t + 10);
-    }
+  for (const bw of data.breakWindows) {
+    const x1 = pad.l + ((bw.s - p.shiftStart) / p.shiftLength) * iW;
+    const x2 = pad.l + ((bw.e - p.shiftStart) / p.shiftLength) * iW;
+    ctx.fillStyle = '#f59e0b18';
+    ctx.fillRect(x1, pad.t, x2 - x1, iH);
+    ctx.strokeStyle = '#f59e0b50';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x1, pad.t, x2 - x1, iH);
+    ctx.fillStyle = '#f59e0bcc';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(bw.label, (x1 + x2) / 2, pad.t + 10);
   }
 
   ctx.fillStyle = '#64748b';
@@ -701,6 +653,39 @@ export function drawPreview() {
   ctx.rotate(-Math.PI / 2);
   ctx.fillText('Call Rate', 0, 0);
   ctx.restore();
+}
+
+export function drawPreview() {
+  const p = getParams();
+
+  // Render immediately with cached data for snappy slider interaction
+  if (_previewData) {
+    renderPreviewCanvas(p, _previewData);
+  }
+
+  // Debounce the API fetch to avoid flooding the server on rapid slider drags
+  if (_previewTimer) clearTimeout(_previewTimer);
+  _previewTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/preview', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          shiftStart: p.shiftStart,
+          shiftLength: p.shiftLength,
+          numAgents: p.numAgents,
+          breakDur: p.breakDur,
+          numBreaks: p.numBreaks,
+        }),
+      });
+      if (res.ok) {
+        _previewData = await res.json();
+        renderPreviewCanvas(getParams(), _previewData);
+      }
+    } catch {
+      // Silently fail — user still sees cached preview
+    }
+  }, 80);
 }
 
 export function showScreen(id) {

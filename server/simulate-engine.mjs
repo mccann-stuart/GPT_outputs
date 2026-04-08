@@ -349,3 +349,44 @@ export function runSimulation(rawParams, { random = Math.random } = {}) {
     },
   };
 }
+
+export function computePreview(raw = {}) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new TypeError('Preview payload must be an object');
+  }
+
+  const shiftStart = toFiniteNumber(raw.shiftStart, 'shiftStart');
+  const shiftLength = toFiniteNumber(raw.shiftLength, 'shiftLength');
+  const numAgents = toFiniteNumber(raw.numAgents, 'numAgents');
+  const breakDur = toFiniteNumber(raw.breakDur, 'breakDur');
+  const numBreaks = toFiniteNumber(raw.numBreaks, 'numBreaks');
+
+  assertInRange(shiftStart, 'shiftStart', 0, 24 * 60);
+  assertInRange(shiftLength, 'shiftLength', 1, 24 * 60);
+  assertInRange(numAgents, 'numAgents', 0, 500);
+  assertInRange(breakDur, 'breakDur', 0, 240);
+  assertInRange(numBreaks, 'numBreaks', 0, 10);
+
+  const N = 200;
+  const curvePoints = Array.from({ length: N + 1 }, (_, i) => callRate(i / N));
+
+  const breakWindows = [];
+  if (numBreaks > 0 && numAgents > 0 && breakDur > 0) {
+    const allBrks = makeBreaks(numAgents, shiftStart, shiftLength, breakDur, numBreaks);
+    if (allBrks.length > 0) {
+      const first = allBrks[0];
+      const last = allBrks[allBrks.length - 1];
+      for (let b = 0; b < numBreaks; b++) {
+        if (first[b] && last[b]) {
+          breakWindows.push({
+            s: first[b].s,
+            e: last[b].e,
+            label: `Break ${b + 1}`,
+          });
+        }
+      }
+    }
+  }
+
+  return { curvePoints, breakWindows };
+}
