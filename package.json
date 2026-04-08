@@ -12,5 +12,8 @@
     "test:simulate": "node --test test/simulate-engine.test.mjs test/worker.test.mjs test/simulate-client.test.mjs",
     "bench:clone": "node benchmark_clone.mjs"
   },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  },
   "license": "ISC"
 }

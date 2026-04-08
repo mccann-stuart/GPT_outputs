@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import * as client from '../simulateClient.mjs';
+import { loadSimulateModule } from './load-simulate-jsx.mjs';
 
 class MockClassList {
   constructor(element) {
@@ -477,7 +477,7 @@ function setupEnvironment() {
   };
 }
 
-test('simulateClient preserves the simulate.jsx flows with server-side view-model responses', async () => {
+test('simulate.jsx preserves the browser adapter flows with server-side view-model responses', async () => {
   const env = setupEnvironment();
   const previous = {};
 
@@ -487,6 +487,8 @@ test('simulateClient preserves the simulate.jsx flows with server-side view-mode
   }
 
   try {
+    const client = await loadSimulateModule();
+
     client.initInputs();
     await env.flushTimers();
 
