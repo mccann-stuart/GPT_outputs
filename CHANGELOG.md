@@ -1,5 +1,13 @@
 # Changelog
 
+## Week of 2026-03-28 to 2026-04-03
+
+### Highlights
+- Added a PRD for a UK income tax reform simulation notebook and the initial notebook files to start the exercise.
+
+### Key PRs
+- No linked GitHub PRs were present in repo history for this week's commits.
+
 ## Week of 2026-03-14 to 2026-03-20
 
 ### Highlights
