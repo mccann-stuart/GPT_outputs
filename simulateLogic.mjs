@@ -820,12 +820,3 @@ export function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
-
-initInputs();
-drawPreview();
-
-window.addEventListener('resize', () => {
-  const active = document.querySelector('.screen.active');
-  if (active && active.id === 'screen-input') drawPreview();
-});
