@@ -468,55 +468,55 @@ input[type="range"] {
       <div className="input-card-icon">👥</div>
       <div className="input-card-label">Number of Agents</div>
       <div className="input-value-display" id="val-agents">15</div>
-      <input type="range" id="inp-agents" min="1" max="50" value="15" />
+      <input type="range" id="inp-agents" min="1" max="50" defaultValue="15" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">🌅</div>
       <div className="input-card-label">Shift Start</div>
       <div className="input-value-display" id="val-start">8:00 AM</div>
-      <input type="range" id="inp-start" min="6" max="12" value="8" step="1" />
+      <input type="range" id="inp-start" min="6" max="12" defaultValue="8" step="1" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">⏰</div>
       <div className="input-card-label">Shift Length</div>
       <div className="input-value-display" id="val-shift">8 hrs</div>
-      <input type="range" id="inp-shift" min="4" max="12" value="8" step="1" />
+      <input type="range" id="inp-shift" min="4" max="12" defaultValue="8" step="1" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">☕</div>
       <div className="input-card-label">Number of Breaks</div>
       <div className="input-value-display" id="val-num-breaks">2</div>
-      <input type="range" id="inp-num-breaks" min="0" max="3" value="2" step="1" />
+      <input type="range" id="inp-num-breaks" min="0" max="3" defaultValue="2" step="1" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">⏱</div>
       <div className="input-card-label">Break Duration (mins each)</div>
       <div className="input-value-display" id="val-break-dur">15 min</div>
-      <input type="range" id="inp-break-dur" min="5" max="30" value="15" step="5" />
+      <input type="range" id="inp-break-dur" min="5" max="30" defaultValue="15" step="5" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">📞</div>
       <div className="input-card-label">Expected Calls (total)</div>
       <div className="input-value-display" id="val-calls">480</div>
-      <input type="range" id="inp-calls" min="50" max="2000" value="480" step="10" />
+      <input type="range" id="inp-calls" min="50" max="2000" defaultValue="480" step="10" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">🕐</div>
       <div className="input-card-label">Avg Handling Time</div>
       <div className="input-value-display" id="val-aht">4 min</div>
-      <input type="range" id="inp-aht" min="1" max="20" value="4" step="1" />
+      <input type="range" id="inp-aht" min="1" max="20" defaultValue="4" step="1" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">🎯</div>
       <div className="input-card-label">Service Target (secs to answer)</div>
       <div className="input-value-display" id="val-target">20 sec</div>
-      <input type="range" id="inp-target" min="5" max="120" value="20" step="5" />
+      <input type="range" id="inp-target" min="5" max="120" defaultValue="20" step="5" />
     </div>
     <div className="input-card">
       <div className="input-card-icon">🚶</div>
       <div className="input-card-label">Customer Patience (avg wait before abandoning)</div>
       <div className="input-value-display" id="val-abandon">3 min</div>
-      <input type="range" id="inp-abandon" min="30" max="600" value="180" step="30" />
+      <input type="range" id="inp-abandon" min="30" max="600" defaultValue="180" step="30" />
     </div>
   </div>
 
