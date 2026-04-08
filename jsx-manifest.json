@@ -1,6 +1,7 @@
 [
   "claudegammamodel.jsx",
+  "frame.jsx",
   "mewmodel.jsx",
-  "truelayer-calculator-reverse-engineered.jsx",
-  "frame.jsx"
+  "simulate.jsx",
+  "truelayer-calculator-reverse-engineered.jsx"
 ]
