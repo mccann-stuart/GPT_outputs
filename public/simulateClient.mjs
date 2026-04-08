@@ -1,4 +1,4 @@
-'use strict';
+// 'use strict';
 
 let simResults = null;
 let simParams = null;
@@ -50,9 +50,9 @@ function callRate(t) {
   return Math.max(
     0,
     0.18
-      + 0.82 * G(t, 0.27, 0.115)
-      + 0.55 * G(t, 0.72, 0.10)
-      - 0.16 * G(t, 0.50, 0.055),
+    + 0.82 * G(t, 0.27, 0.115)
+    + 0.55 * G(t, 0.72, 0.10)
+    - 0.16 * G(t, 0.50, 0.055),
   );
 }
 
