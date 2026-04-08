@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizeSimulationParams, runSimulation } from '../server/simulate-engine.mjs';
+import {
+  buildSimulationViewModel,
+  computePreview,
+  normalizeSimulationParams,
+  runSimulation,
+} from '../server/simulate-engine.mjs';
 
 function createSequenceRandom(sequence) {
   let index = 0;
@@ -10,6 +15,64 @@ function createSequenceRandom(sequence) {
     index += 1;
     return value;
   };
+}
+
+function toneForAsa(value, serviceTarget) {
+  if (value <= serviceTarget) {
+    return 'green';
+  }
+  if (value <= serviceTarget * 2) {
+    return 'amber';
+  }
+  return 'red';
+}
+
+function toneForSl(value) {
+  if (value >= 80) {
+    return 'green';
+  }
+  if (value >= 60) {
+    return 'amber';
+  }
+  return 'red';
+}
+
+function toneForUtil(value) {
+  if (value > 90) {
+    return 'red';
+  }
+  if (value >= 50) {
+    return 'green';
+  }
+  return 'blue';
+}
+
+function toneForAbandon(value) {
+  if (value < 5) {
+    return 'green';
+  }
+  if (value < 15) {
+    return 'amber';
+  }
+  return 'red';
+}
+
+function hotspotKey(interval, serviceTarget) {
+  const stressed = interval.avgWaitS > serviceTarget * 2 || interval.sl < 60 || interval.abandonRate > 15;
+  const elevated = !stressed
+    && (interval.avgWaitS > serviceTarget || interval.sl < 80 || interval.abandonRate > 5);
+  const quiet = !stressed && !elevated && interval.util < 50;
+
+  if (stressed) {
+    return 'stressed';
+  }
+  if (elevated) {
+    return 'elevated';
+  }
+  if (quiet) {
+    return 'quiet';
+  }
+  return 'optimal';
 }
 
 const baseParams = {
@@ -38,6 +101,56 @@ test('runSimulation is deterministic with an injected RNG', () => {
   assert.deepEqual(second, first);
   assert.equal(first.params.expectedCalls, 120);
   assert.equal(first.intervals.length, 16);
+});
+
+test('buildSimulationViewModel is deterministic and returns playback and analysis models', () => {
+  const sequence = [0.11, 0.62, 0.27, 0.84, 0.45, 0.19, 0.73, 0.31];
+  const first = buildSimulationViewModel(baseParams, { random: createSequenceRandom(sequence) });
+  const second = buildSimulationViewModel(baseParams, { random: createSequenceRandom(sequence) });
+
+  assert.deepEqual(second, first);
+  assert.equal(first.params.expectedCalls, 120);
+  assert.ok(Array.isArray(first.playback.events));
+  assert.deepEqual(first.playback.initialState.agentStatus, new Array(baseParams.numAgents).fill('idle'));
+  assert.equal(first.playback.footer.agentsDisplay, '12');
+  assert.equal(first.analysis.summary.calls.subtext.includes('expected'), true);
+  assert.equal(first.analysis.charts.asa.refValue, baseParams.serviceTarget);
+  assert.equal(first.analysis.charts.asa.refTone, 'amber');
+});
+
+test('buildSimulationViewModel hotspot and tone rules match the client thresholds', () => {
+  const sequence = [0.21, 0.73, 0.15, 0.88, 0.32, 0.67, 0.44, 0.91];
+  const raw = runSimulation(baseParams, { random: createSequenceRandom(sequence) });
+  const view = buildSimulationViewModel(baseParams, { random: createSequenceRandom(sequence) });
+
+  assert.equal(view.analysis.hotspots.length, raw.intervals.length);
+
+  for (let i = 0; i < raw.intervals.length; i++) {
+    const interval = raw.intervals[i];
+    const hotspot = view.analysis.hotspots[i];
+    assert.equal(hotspot.status.key, hotspotKey(interval, baseParams.serviceTarget));
+    assert.equal(hotspot.avgWaitTone, toneForAsa(interval.avgWaitS, baseParams.serviceTarget));
+    assert.equal(hotspot.slTone, toneForSl(interval.sl));
+    assert.equal(hotspot.utilTone, toneForUtil(interval.util));
+    assert.equal(hotspot.abandonTone, toneForAbandon(interval.abandonRate));
+  }
+});
+
+test('computePreview returns draw-ready preview data including axis labels', () => {
+  const preview = computePreview({
+    shiftStart: baseParams.shiftStart,
+    shiftLength: baseParams.shiftLength,
+    numAgents: baseParams.numAgents,
+    breakDur: baseParams.breakDur,
+    numBreaks: baseParams.numBreaks,
+  });
+
+  assert.equal(preview.curvePoints.length, 201);
+  assert.equal(preview.breakWindows.length, baseParams.numBreaks);
+  assert.deepEqual(preview.axisLabels.map((label) => label.offsetMin), [
+    0, 60, 120, 180, 240, 300, 360, 420, 480,
+  ]);
+  assert.equal(preview.axisLabels[0].label, '8');
 });
 
 test('runSimulation handles zero expected calls', () => {

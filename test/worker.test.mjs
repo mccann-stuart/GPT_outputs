@@ -23,7 +23,7 @@ const validPayload = {
   abandonTime: 180,
 };
 
-test('worker returns simulation data for POST /api/simulate', async () => {
+test('worker returns simulation view-model data for POST /api/simulate', async () => {
   const request = new Request('https://example.com/api/simulate', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -34,9 +34,35 @@ test('worker returns simulation data for POST /api/simulate', async () => {
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.ok(Array.isArray(body.events));
-  assert.ok(Array.isArray(body.intervals));
   assert.equal(body.params.expectedCalls, 100);
+  assert.ok(Array.isArray(body.playback.events));
+  assert.deepEqual(body.playback.initialState.agentStatus, new Array(validPayload.numAgents).fill('idle'));
+  assert.equal(body.playback.footer.targetDisplay, '20s');
+  assert.equal(typeof body.analysis.summary.asa.display, 'string');
+  assert.ok(Array.isArray(body.analysis.hotspots));
+  assert.ok(Array.isArray(body.analysis.charts.asa.values));
+});
+
+test('worker returns preview view-model data for POST /api/preview', async () => {
+  const request = new Request('https://example.com/api/preview', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      shiftStart: validPayload.shiftStart,
+      shiftLength: validPayload.shiftLength,
+      numAgents: validPayload.numAgents,
+      breakDur: validPayload.breakDur,
+      numBreaks: validPayload.numBreaks,
+    }),
+  });
+
+  const response = await worker.fetch(request, makeEnv(), {});
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.curvePoints.length, 201);
+  assert.ok(Array.isArray(body.breakWindows));
+  assert.ok(Array.isArray(body.axisLabels));
 });
 
 test('worker returns 400 for invalid payload', async () => {
@@ -55,6 +81,15 @@ test('worker returns 400 for invalid payload', async () => {
 
 test('worker returns 405 for non-POST simulate requests', async () => {
   const request = new Request('https://example.com/api/simulate', { method: 'GET' });
+  const response = await worker.fetch(request, makeEnv(), {});
+  const body = await response.json();
+
+  assert.equal(response.status, 405);
+  assert.match(body.error, /method not allowed/i);
+});
+
+test('worker returns 405 for non-POST preview requests', async () => {
+  const request = new Request('https://example.com/api/preview', { method: 'GET' });
   const response = await worker.fetch(request, makeEnv(), {});
   const body = await response.json();
 

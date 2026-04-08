@@ -8,6 +8,22 @@ function fmt12(min) {
   return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
 }
 
+function fmtSec(seconds) {
+  const rounded = Math.round(seconds);
+  if (rounded < 60) {
+    return `${rounded}s`;
+  }
+  return `${Math.floor(rounded / 60)}m ${rounded % 60}s`;
+}
+
+function formatPreviewAxisLabel(min) {
+  return fmt12(min)
+    .replace(':00', '')
+    .replace(' AM', ' ')
+    .replace(' PM', ' ')
+    .trim();
+}
+
 function toFiniteNumber(raw, name) {
   const value = Number(raw);
   if (!Number.isFinite(value)) {
@@ -20,6 +36,196 @@ function assertInRange(value, name, min, max) {
   if (value < min || value > max) {
     throw new RangeError(`${name} must be between ${min} and ${max}`);
   }
+}
+
+function toneForAsa(value, serviceTarget) {
+  if (value <= serviceTarget) {
+    return 'green';
+  }
+  if (value <= serviceTarget * 2) {
+    return 'amber';
+  }
+  return 'red';
+}
+
+function toneForSl(value) {
+  if (value >= 80) {
+    return 'green';
+  }
+  if (value >= 60) {
+    return 'amber';
+  }
+  return 'red';
+}
+
+function toneForUtil(value) {
+  if (value > 90) {
+    return 'red';
+  }
+  if (value >= 50) {
+    return 'green';
+  }
+  return 'blue';
+}
+
+function toneForAbandon(value) {
+  if (value < 5) {
+    return 'green';
+  }
+  if (value < 15) {
+    return 'amber';
+  }
+  return 'red';
+}
+
+function classifyHotspot(interval, serviceTarget) {
+  const stressed = interval.avgWaitS > serviceTarget * 2 || interval.sl < 60 || interval.abandonRate > 15;
+  const elevated = !stressed
+    && (interval.avgWaitS > serviceTarget || interval.sl < 80 || interval.abandonRate > 5);
+  const quiet = !stressed && !elevated && interval.util < 50;
+
+  if (stressed) {
+    return { key: 'stressed', label: '⚠ Stressed', badgeClass: 'badge-stressed' };
+  }
+  if (elevated) {
+    return { key: 'elevated', label: '↑ Elevated', badgeClass: 'badge-elevated' };
+  }
+  if (quiet) {
+    return { key: 'quiet', label: '↓ Under-utilised', badgeClass: 'badge-quiet' };
+  }
+  return { key: 'optimal', label: '✓ Optimal', badgeClass: 'badge-optimal' };
+}
+
+function makeChart(labels, values, tones, options = {}) {
+  const maxValue = values.length > 0 ? Math.max(...values) : 0;
+  const fallbackMax = options.minYMax ?? 0;
+  const derivedMax = options.yMax ?? Math.max(maxValue, fallbackMax);
+
+  return {
+    labels,
+    values,
+    tones,
+    yMax: derivedMax,
+    refValue: options.refValue,
+    refTone: options.refTone,
+  };
+}
+
+function buildSummary(overall, params) {
+  return {
+    calls: {
+      value: overall.total,
+      display: String(overall.total),
+      subtext: `of ${params.expectedCalls} expected · ${overall.abandoned} abandoned`,
+      tone: 'text',
+    },
+    asa: {
+      value: overall.asa,
+      display: fmtSec(overall.asa),
+      subtext: `Target: ${params.serviceTarget}s`,
+      tone: toneForAsa(overall.asa, params.serviceTarget),
+    },
+    sl: {
+      value: overall.sl,
+      display: `${overall.sl.toFixed(1)}%`,
+      subtext: `Calls answered within ${params.serviceTarget}s`,
+      tone: toneForSl(overall.sl),
+    },
+    util: {
+      value: overall.util,
+      display: `${overall.util.toFixed(1)}%`,
+      subtext: 'Time on calls vs available',
+      tone: toneForUtil(overall.util),
+    },
+    abandon: {
+      value: overall.abandonRate,
+      display: `${overall.abandonRate.toFixed(1)}%`,
+      subtext: `${overall.abandoned} of ${overall.totalOffered} offered calls`,
+      tone: toneForAbandon(overall.abandonRate),
+    },
+  };
+}
+
+function buildHotspots(intervals, serviceTarget) {
+  return intervals.map((interval) => ({
+    label: interval.label,
+    numCalls: interval.numCalls,
+    numCallsDisplay: String(interval.numCalls),
+    avgWaitS: interval.avgWaitS,
+    avgWaitDisplay: fmtSec(interval.avgWaitS),
+    avgWaitTone: toneForAsa(interval.avgWaitS, serviceTarget),
+    sl: interval.sl,
+    slDisplay: `${interval.sl.toFixed(0)}%`,
+    slTone: toneForSl(interval.sl),
+    abandonRate: interval.abandonRate,
+    abandonDisplay: `${interval.abandonRate.toFixed(0)}%`,
+    abandonTone: toneForAbandon(interval.abandonRate),
+    util: interval.util,
+    utilDisplay: `${interval.util.toFixed(0)}%`,
+    utilTone: toneForUtil(interval.util),
+    status: classifyHotspot(interval, serviceTarget),
+  }));
+}
+
+function buildAnalysis(intervals, overall, params) {
+  return {
+    summary: buildSummary(overall, params),
+    hotspots: buildHotspots(intervals, params.serviceTarget),
+    charts: {
+      volume: makeChart(
+        intervals.map((interval) => interval.label),
+        intervals.map((interval) => interval.numCalls),
+        intervals.map(() => 'blue'),
+      ),
+      asa: makeChart(
+        intervals.map((interval) => interval.label),
+        intervals.map((interval) => interval.avgWaitS),
+        intervals.map((interval) => toneForAsa(interval.avgWaitS, params.serviceTarget)),
+        {
+          yMax: Math.max(...intervals.map((interval) => interval.avgWaitS), params.serviceTarget * 2.5, 30),
+          refValue: params.serviceTarget,
+          refTone: 'amber',
+        },
+      ),
+      util: makeChart(
+        intervals.map((interval) => interval.label),
+        intervals.map((interval) => interval.util),
+        intervals.map((interval) => toneForUtil(interval.util)),
+        {
+          yMax: Math.max(...intervals.map((interval) => interval.util), 100),
+        },
+      ),
+      abandon: makeChart(
+        intervals.map((interval) => interval.label),
+        intervals.map((interval) => interval.abandonRate),
+        intervals.map((interval) => toneForAbandon(interval.abandonRate)),
+        {
+          yMax: Math.max(...intervals.map((interval) => interval.abandonRate), 20),
+        },
+      ),
+    },
+  };
+}
+
+function buildPlayback(params, overall, events) {
+  return {
+    events,
+    initialState: {
+      simTime: params.shiftStart,
+      queue: 0,
+      arrived: 0,
+      answered: 0,
+      abandoned: 0,
+      totalWaitMin: 0,
+      withinTarget: 0,
+      agentStatus: new Array(params.numAgents).fill('idle'),
+    },
+    footer: {
+      callsDisplay: String(overall.total),
+      agentsDisplay: String(params.numAgents),
+      targetDisplay: `${params.serviceTarget}s`,
+    },
+  };
 }
 
 export function normalizeSimulationParams(raw = {}) {
@@ -68,7 +274,7 @@ function buildCDF(shiftLength) {
   const rates = Array.from({ length: bins }, (_, i) => callRate((i + 0.5) / bins));
   const total = rates.reduce((a, b) => a + b, 0);
   let cum = 0;
-  return rates.map((r) => (cum += r / total));
+  return rates.map((rate) => (cum += rate / total));
 }
 
 function generateCalls(n, shiftStart, shiftLength, ahtMin, cdf, abandonTimeSec, random) {
@@ -134,9 +340,9 @@ function nextAvail(at, busyUntil, brks) {
   let changed = true;
   while (changed) {
     changed = false;
-    for (const b of brks) {
-      if (t >= b.s && t < b.e) {
-        t = b.e;
+    for (const brk of brks) {
+      if (t >= brk.s && t < brk.e) {
+        t = brk.e;
         changed = true;
       }
     }
@@ -170,10 +376,10 @@ export function runSimulation(rawParams, { random = Math.random } = {}) {
   let callId = 0;
 
   for (let a = 0; a < numAgents; a++) {
-    for (const b of allBrks[a]) {
-      if (b.s < shiftEnd) {
-        events.push({ t: b.s, type: 'brk_s', a });
-        events.push({ t: Math.min(b.e, shiftEnd), type: 'brk_e', a });
+    for (const brk of allBrks[a]) {
+      if (brk.s < shiftEnd) {
+        events.push({ t: brk.s, type: 'brk_s', a });
+        events.push({ t: Math.min(brk.e, shiftEnd), type: 'brk_e', a });
       }
     }
   }
@@ -202,6 +408,7 @@ export function runSimulation(rawParams, { random = Math.random } = {}) {
         bestA = a;
       }
     }
+
     if (bestAt >= shiftEnd) {
       continue;
     }
@@ -242,17 +449,17 @@ export function runSimulation(rawParams, { random = Math.random } = {}) {
     const is = shiftStart + i * intLen;
     const ie = is + intLen;
 
-    const arriving = results.filter((r) => r.arrival >= is && r.arrival < ie);
-    const abandonedInInt = abandonedCalls.filter((a) => a.arrival >= is && a.arrival < ie);
+    const arriving = results.filter((result) => result.arrival >= is && result.arrival < ie);
+    const abandonedInInt = abandonedCalls.filter((call) => call.arrival >= is && call.arrival < ie);
     const totalOffered = arriving.length + abandonedInInt.length;
     const numAbandoned = abandonedInInt.length;
     const abandonRate = totalOffered > 0 ? (numAbandoned / totalOffered) * 100 : 0;
 
     const avgWaitS = arriving.length
-      ? (arriving.reduce((s, r) => s + r.wait, 0) / arriving.length) * 60
+      ? (arriving.reduce((sum, result) => sum + result.wait, 0) / arriving.length) * 60
       : 0;
     const sl = arriving.length
-      ? (arriving.filter((r) => r.ok).length / arriving.length) * 100
+      ? (arriving.filter((result) => result.ok).length / arriving.length) * 100
       : 100;
 
     let avail = 0;
@@ -260,38 +467,36 @@ export function runSimulation(rawParams, { random = Math.random } = {}) {
 
     for (let a = 0; a < numAgents; a++) {
       let brkInInt = 0;
-      for (const b of allBrks[a]) {
-        const os = Math.max(b.s, is);
-        const oe = Math.min(b.e, ie);
-        if (oe > os) {
-          brkInInt += oe - os;
+      for (const brk of allBrks[a]) {
+        const overlapStart = Math.max(brk.s, is);
+        const overlapEnd = Math.min(brk.e, ie);
+        if (overlapEnd > overlapStart) {
+          brkInInt += overlapEnd - overlapStart;
         }
       }
 
       avail += Math.min(intLen, shiftEnd - is) - brkInInt;
 
-      for (const r of results) {
-        if (r.agent !== a) {
+      for (const result of results) {
+        if (result.agent !== a) {
           continue;
         }
-        const os = Math.max(r.answer, is);
-        const oe = Math.min(r.end, ie);
-        if (oe <= os) {
+        const overlapStart = Math.max(result.answer, is);
+        const overlapEnd = Math.min(result.end, ie);
+        if (overlapEnd <= overlapStart) {
           continue;
         }
-        let callTime = oe - os;
-        for (const b of allBrks[a]) {
-          const bos = Math.max(b.s, os);
-          const boe = Math.min(b.e, oe);
-          if (boe > bos) {
-            callTime -= boe - bos;
+        let callTime = overlapEnd - overlapStart;
+        for (const brk of allBrks[a]) {
+          const brkOverlapStart = Math.max(brk.s, overlapStart);
+          const brkOverlapEnd = Math.min(brk.e, overlapEnd);
+          if (brkOverlapEnd > brkOverlapStart) {
+            callTime -= brkOverlapEnd - brkOverlapStart;
           }
         }
         busy += Math.max(0, callTime);
       }
     }
-
-    const util = avail > 0 ? (busy / avail) * 100 : 0;
 
     intervals.push({
       label: fmt12(is),
@@ -301,35 +506,33 @@ export function runSimulation(rawParams, { random = Math.random } = {}) {
       abandonRate,
       avgWaitS,
       sl,
-      util,
+      util: avail > 0 ? (busy / avail) * 100 : 0,
     });
   }
 
-  const totalWait = results.reduce((s, r) => s + r.wait, 0);
+  const totalWait = results.reduce((sum, result) => sum + result.wait, 0);
   const asa = results.length ? (totalWait / results.length) * 60 : 0;
-  const slOv = results.length ? (results.filter((r) => r.ok).length / results.length) * 100 : 0;
+  const slOv = results.length ? (results.filter((result) => result.ok).length / results.length) * 100 : 0;
   const totalOffered = results.length + abandonedCalls.length;
   const abandonRateOv = totalOffered > 0 ? (abandonedCalls.length / totalOffered) * 100 : 0;
 
   let tAvail = 0;
   let tBusy = 0;
   for (let a = 0; a < numAgents; a++) {
-    const brkT = allBrks[a].reduce((s, b) => s + (Math.min(b.e, shiftEnd) - b.s), 0);
+    const brkT = allBrks[a].reduce((sum, brk) => sum + (Math.min(brk.e, shiftEnd) - brk.s), 0);
     tAvail += shiftLength - Math.max(0, brkT);
-    for (const r of results.filter((result) => result.agent === a)) {
-      let callTime = r.end - r.answer;
-      for (const b of allBrks[a]) {
-        const bos = Math.max(b.s, r.answer);
-        const boe = Math.min(b.e, r.end);
-        if (boe > bos) {
-          callTime -= boe - bos;
+    for (const result of results.filter((item) => item.agent === a)) {
+      let callTime = result.end - result.answer;
+      for (const brk of allBrks[a]) {
+        const overlapStart = Math.max(brk.s, result.answer);
+        const overlapEnd = Math.min(brk.e, result.end);
+        if (overlapEnd > overlapStart) {
+          callTime -= overlapEnd - overlapStart;
         }
       }
       tBusy += Math.max(0, callTime);
     }
   }
-
-  const utilOv = tAvail > 0 ? (tBusy / tAvail) * 100 : 0;
 
   return {
     params,
@@ -341,12 +544,21 @@ export function runSimulation(rawParams, { random = Math.random } = {}) {
     overall: {
       asa,
       sl: slOv,
-      util: utilOv,
+      util: tAvail > 0 ? (tBusy / tAvail) * 100 : 0,
       total: results.length,
       abandoned: abandonedCalls.length,
       totalOffered,
       abandonRate: abandonRateOv,
     },
+  };
+}
+
+export function buildSimulationViewModel(rawParams, options = {}) {
+  const simulation = runSimulation(rawParams, options);
+  return {
+    params: simulation.params,
+    playback: buildPlayback(simulation.params, simulation.overall, simulation.events),
+    analysis: buildAnalysis(simulation.intervals, simulation.overall, simulation.params),
   };
 }
 
@@ -388,5 +600,13 @@ export function computePreview(raw = {}) {
     }
   }
 
-  return { curvePoints, breakWindows };
+  const axisLabels = [];
+  for (let hour = 0; hour <= shiftLength / 60; hour += 1) {
+    axisLabels.push({
+      offsetMin: hour * 60,
+      label: formatPreviewAxisLabel(shiftStart + hour * 60),
+    });
+  }
+
+  return { curvePoints, breakWindows, axisLabels };
 }

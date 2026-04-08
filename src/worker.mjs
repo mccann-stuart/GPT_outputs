@@ -1,4 +1,4 @@
-import { normalizeSimulationParams, runSimulation, computePreview } from '../server/simulate-engine.mjs';
+import { buildSimulationViewModel, computePreview } from '../server/simulate-engine.mjs';
 
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
@@ -31,9 +31,7 @@ export default {
       }
 
       try {
-        const params = normalizeSimulationParams(payload);
-        const result = runSimulation(params);
-        return json(result);
+        return json(buildSimulationViewModel(payload));
       } catch (error) {
         return errorResponse(400, error instanceof Error ? error.message : 'Invalid simulation payload');
       }

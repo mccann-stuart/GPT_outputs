@@ -9,7 +9,7 @@
     "build:public": "node prepare-public.mjs",
     "predeploy": "npm run build:public",
     "test": "node --test test/*.test.mjs",
-    "test:simulate": "node --test test/simulate-engine.test.mjs test/worker.test.mjs",
+    "test:simulate": "node --test test/simulate-engine.test.mjs test/worker.test.mjs test/simulate-client.test.mjs",
     "bench:clone": "node benchmark_clone.mjs"
   },
   "license": "ISC"

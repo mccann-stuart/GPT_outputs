@@ -1,7 +1,8 @@
 'use strict';
 
-let simResults = null;
 let simParams = null;
+let simPlayback = null;
+let simAnalysis = null;
 let actLog = [];
 let _previewData = null;
 let _previewTimer = null;
@@ -21,6 +22,21 @@ let animState = {
   withinTarget: 0,
 };
 
+const TONE_TO_VAR = {
+  text: 'var(--text)',
+  green: 'var(--green)',
+  amber: 'var(--amber)',
+  red: 'var(--red)',
+  blue: 'var(--blue)',
+};
+
+const TONE_TO_COLOR = {
+  green: '#10b981',
+  amber: '#f59e0b',
+  red: '#ef4444',
+  blue: '#3b82f6',
+};
+
 function fmt12(min) {
   const h = Math.floor(min / 60) % 24;
   const m = Math.floor(min % 60);
@@ -35,8 +51,8 @@ function fmt24(min) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-function fmtSec(s) {
-  const rounded = Math.round(s);
+function fmtSec(seconds) {
+  const rounded = Math.round(seconds);
   if (rounded < 60) {
     return `${rounded}s`;
   }
@@ -47,7 +63,13 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function getToneVar(tone) {
+  return TONE_TO_VAR[tone] || 'var(--text)';
+}
 
+function getToneColor(tone) {
+  return TONE_TO_COLOR[tone] || '#64748b';
+}
 
 function getParams() {
   return {
@@ -89,14 +111,14 @@ function cancelAnimation() {
 }
 
 function buildGrid(n) {
-  const g = document.getElementById('agent-grid');
-  g.innerHTML = '';
+  const grid = document.getElementById('agent-grid');
+  grid.innerHTML = '';
   for (let i = 0; i < n; i++) {
-    const d = document.createElement('div');
-    d.className = 'agent-card idle';
-    d.id = `ag-${i}`;
-    d.innerHTML = `<div class="a-icon">👤</div><div class="a-num">${i + 1}</div>`;
-    g.appendChild(d);
+    const card = document.createElement('div');
+    card.className = 'agent-card idle';
+    card.id = `ag-${i}`;
+    card.innerHTML = `<div class="a-icon">👤</div><div class="a-num">${i + 1}</div>`;
+    grid.appendChild(card);
   }
 }
 
@@ -107,18 +129,21 @@ function setAgentStatus(i, status) {
   }
   const icons = { idle: '👤', busy: '📞', 'on-break': '☕' };
   el.className = `agent-card ${status}`;
-  el.querySelector('.a-icon').textContent = icons[status] || '👤';
+  const icon = el.querySelector('.a-icon');
+  if (icon) {
+    icon.textContent = icons[status] || '👤';
+  }
 }
 
-export function setSpeed(s) {
+export function setSpeed(speed) {
   if (animState.running && animState.startTime !== null) {
     const elapsed = (performance.now() - animState.startTime) / 1000;
     const curSim = simParams.shiftStart + elapsed * animState.speed;
-    animState.startTime = performance.now() - ((curSim - simParams.shiftStart) / s) * 1000;
+    animState.startTime = performance.now() - ((curSim - simParams.shiftStart) / speed) * 1000;
   }
-  animState.speed = s;
+  animState.speed = speed;
   document.querySelectorAll('.speed-btn').forEach((btn, idx) => {
-    btn.classList.toggle('active', [60, 120, 300, 600, 9999][idx] === s);
+    btn.classList.toggle('active', [60, 120, 300, 600, 9999][idx] === speed);
   });
 }
 
@@ -175,11 +200,10 @@ function processEvent(evt) {
 
 function updateSimUI() {
   const st = animState;
-  const prm = simParams;
-  const prog = clamp((st.simTime - prm.shiftStart) / prm.shiftLength, 0, 1);
+  const progress = clamp((st.simTime - simParams.shiftStart) / simParams.shiftLength, 0, 1);
 
   document.getElementById('sim-clock').textContent = fmt24(st.simTime);
-  document.getElementById('sim-bar').style.width = `${prog * 100}%`;
+  document.getElementById('sim-bar').style.width = `${progress * 100}%`;
 
   document.getElementById('stat-queue').textContent = st.queue;
   document.getElementById('stat-arrived').textContent = st.arrived;
@@ -192,14 +216,14 @@ function updateSimUI() {
     const slp = ((st.withinTarget / st.answered) * 100).toFixed(1);
     const slEl = document.getElementById('stat-sl');
     slEl.textContent = `${slp}%`;
-    slEl.style.color = +slp >= 80 ? 'var(--green)' : +slp >= 60 ? 'var(--amber)' : 'var(--red)';
+    slEl.style.color = getToneVar(+slp >= 80 ? 'green' : +slp >= 60 ? 'amber' : 'red');
   } else {
     document.getElementById('stat-asa').textContent = '—';
     document.getElementById('stat-sl').textContent = '—';
   }
 
-  const busy = st.agentStatus.filter((s) => s === 'busy').length;
-  const avail = st.agentStatus.filter((s) => s !== 'on-break').length;
+  const busy = st.agentStatus.filter((status) => status === 'busy').length;
+  const avail = st.agentStatus.filter((status) => status !== 'on-break').length;
   document.getElementById('stat-util').textContent = avail > 0 ? `${busy} / ${avail}` : '—';
 
   const dotsEl = document.getElementById('queue-dots');
@@ -207,20 +231,22 @@ function updateSimUI() {
   if (dotsEl.children.length !== show) {
     dotsEl.innerHTML = '';
     for (let i = 0; i < show; i++) {
-      const d = document.createElement('div');
-      d.className = 'q-dot';
-      dotsEl.appendChild(d);
+      const dot = document.createElement('div');
+      dot.className = 'q-dot';
+      dotsEl.appendChild(dot);
     }
     if (st.queue > 24) {
-      const sp = document.createElement('span');
-      sp.style.cssText = 'font-size:0.65rem;color:var(--amber);align-self:center;margin-left:2px';
-      sp.textContent = `+${st.queue - 24}`;
-      dotsEl.appendChild(sp);
+      const extra = document.createElement('span');
+      extra.style.cssText = 'font-size:0.65rem;color:var(--amber);align-self:center;margin-left:2px';
+      extra.textContent = `+${st.queue - 24}`;
+      dotsEl.appendChild(extra);
     }
   }
 
   const list = document.getElementById('activity-list');
-  list.innerHTML = actLog.map((a) => `<li class="act-item ${a.cls}">${a.text}</li>`).join('');
+  list.innerHTML = actLog.map((activity) => (
+    `<li class="act-item ${activity.cls}">${activity.text}</li>`
+  )).join('');
 }
 
 function animTick(ts) {
@@ -237,10 +263,10 @@ function animTick(ts) {
   animState.simTime = Math.min(simT, shiftEnd);
 
   while (
-    animState.eventIdx < simResults.events.length
-    && simResults.events[animState.eventIdx].t <= animState.simTime
+    animState.eventIdx < simPlayback.events.length
+    && simPlayback.events[animState.eventIdx].t <= animState.simTime
   ) {
-    processEvent(simResults.events[animState.eventIdx]);
+    processEvent(simPlayback.events[animState.eventIdx]);
     animState.eventIdx++;
   }
 
@@ -269,28 +295,29 @@ export async function startSimulation() {
   setButtonLoading(true);
 
   try {
-    const params = getParams();
     const response = await fetch('/api/simulate', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
       },
-      body: JSON.stringify(params),
+      body: JSON.stringify(getParams()),
     });
 
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, `Simulation failed with ${response.status}`));
     }
 
-    simParams = params;
-    simResults = await response.json();
+    const data = await response.json();
+    simParams = data.params;
+    simPlayback = data.playback;
+    simAnalysis = data.analysis;
 
-    buildGrid(params.numAgents);
+    buildGrid(simParams.numAgents);
     actLog = [];
 
-    document.getElementById('footer-calls').textContent = simResults.overall.total;
-    document.getElementById('footer-agents').textContent = params.numAgents;
-    document.getElementById('footer-target').textContent = `${params.serviceTarget}s`;
+    document.getElementById('footer-calls').textContent = simPlayback.footer.callsDisplay;
+    document.getElementById('footer-agents').textContent = simPlayback.footer.agentsDisplay;
+    document.getElementById('footer-target').textContent = simPlayback.footer.targetDisplay;
     document.getElementById('progress-label').textContent = 'Shift in progress…';
     document.getElementById('view-btn').classList.remove('ready');
 
@@ -300,14 +327,14 @@ export async function startSimulation() {
       startTime: null,
       speed: 120,
       eventIdx: 0,
-      simTime: params.shiftStart,
-      agentStatus: new Array(params.numAgents).fill('idle'),
-      queue: 0,
-      arrived: 0,
-      answered: 0,
-      abandoned: 0,
-      totalWaitMin: 0,
-      withinTarget: 0,
+      simTime: simPlayback.initialState.simTime,
+      agentStatus: [...simPlayback.initialState.agentStatus],
+      queue: simPlayback.initialState.queue,
+      arrived: simPlayback.initialState.arrived,
+      answered: simPlayback.initialState.answered,
+      abandoned: simPlayback.initialState.abandoned,
+      totalWaitMin: simPlayback.initialState.totalWaitMin,
+      withinTarget: simPlayback.initialState.withinTarget,
     });
 
     document.querySelectorAll('.speed-btn').forEach((btn, idx) => {
@@ -325,93 +352,63 @@ export async function startSimulation() {
   }
 }
 
+function setSummaryCard(valueId, subId, model) {
+  const valueEl = document.getElementById(valueId);
+  valueEl.textContent = model.display;
+  valueEl.style.color = getToneVar(model.tone);
+  if (subId) {
+    document.getElementById(subId).textContent = model.subtext;
+  }
+}
+
 export function showAnalysis() {
-  if (!simResults || !simParams) {
+  if (!simAnalysis || !simParams) {
     return;
   }
 
   showScreen('screen-analysis');
 
-  const { overall, intervals } = simResults;
-  const { serviceTarget } = simParams;
+  setSummaryCard('sum-calls', 'sum-calls-sub', simAnalysis.summary.calls);
+  setSummaryCard('sum-asa', 'sum-asa-sub', simAnalysis.summary.asa);
+  setSummaryCard('sum-sl', 'sum-sl-sub', simAnalysis.summary.sl);
+  setSummaryCard('sum-util', null, simAnalysis.summary.util);
+  setSummaryCard('sum-abandon', 'sum-abandon-sub', simAnalysis.summary.abandon);
 
-  document.getElementById('sum-calls').textContent = overall.total;
-  document.getElementById('sum-calls-sub').textContent =
-    `of ${simParams.expectedCalls} expected · ${overall.abandoned} abandoned`;
-
-  const asaEl = document.getElementById('sum-asa');
-  asaEl.textContent = fmtSec(overall.asa);
-  asaEl.style.color = overall.asa <= serviceTarget
-    ? 'var(--green)'
-    : overall.asa <= serviceTarget * 2
-      ? 'var(--amber)'
-      : 'var(--red)';
-  document.getElementById('sum-asa-sub').textContent = `Target: ${serviceTarget}s`;
-
-  const slEl = document.getElementById('sum-sl');
-  slEl.textContent = `${overall.sl.toFixed(1)}%`;
-  slEl.style.color = overall.sl >= 80 ? 'var(--green)' : overall.sl >= 60 ? 'var(--amber)' : 'var(--red)';
-  document.getElementById('sum-sl-sub').textContent = `Calls answered within ${serviceTarget}s`;
-
-  const utEl = document.getElementById('sum-util');
-  utEl.textContent = `${overall.util.toFixed(1)}%`;
-  utEl.style.color = overall.util > 90 ? 'var(--red)' : overall.util >= 50 ? 'var(--green)' : 'var(--blue)';
-
-  const abEl = document.getElementById('sum-abandon');
-  abEl.textContent = `${overall.abandonRate.toFixed(1)}%`;
-  abEl.style.color = overall.abandonRate < 5 ? 'var(--green)' : overall.abandonRate < 15 ? 'var(--amber)' : 'var(--red)';
-  document.getElementById('sum-abandon-sub').textContent = `${overall.abandoned} of ${overall.totalOffered} offered calls`;
-
-  const tbl = document.getElementById('hotspot-table');
-  while (tbl.children.length > 1) {
-    tbl.lastChild.remove();
+  const table = document.getElementById('hotspot-table');
+  while (table.children.length > 1) {
+    table.lastChild.remove();
   }
 
-  for (const iv of intervals) {
-    const stressed = iv.avgWaitS > serviceTarget * 2 || iv.sl < 60 || iv.abandonRate > 15;
-    const elevated = !stressed && (iv.avgWaitS > serviceTarget || iv.sl < 80 || iv.abandonRate > 5);
-    const quiet = !stressed && !elevated && iv.util < 50;
-
-    let badge;
-    if (stressed) {
-      badge = '<span class="status-badge badge-stressed">⚠ Stressed</span>';
-    } else if (elevated) {
-      badge = '<span class="status-badge badge-elevated">↑ Elevated</span>';
-    } else if (quiet) {
-      badge = '<span class="status-badge badge-quiet">↓ Under-utilised</span>';
-    } else {
-      badge = '<span class="status-badge badge-optimal">✓ Optimal</span>';
-    }
-
+  for (const rowModel of simAnalysis.hotspots) {
     const row = document.createElement('div');
     row.className = 'ht-row';
     row.innerHTML = `
-      <div class="ht-cell">${iv.label}</div>
-      <div class="ht-cell">${iv.numCalls}</div>
-      <div class="ht-cell" style="color:${iv.avgWaitS > serviceTarget * 2 ? 'var(--red)' : iv.avgWaitS > serviceTarget ? 'var(--amber)' : 'var(--green)'}">${fmtSec(iv.avgWaitS)}</div>
-      <div class="ht-cell" style="color:${iv.sl >= 80 ? 'var(--green)' : iv.sl >= 60 ? 'var(--amber)' : 'var(--red)'}">${iv.sl.toFixed(0)}%</div>
-      <div class="ht-cell" style="color:${iv.abandonRate > 15 ? 'var(--red)' : iv.abandonRate > 5 ? 'var(--amber)' : 'var(--green)'}">${iv.abandonRate.toFixed(0)}%</div>
-      <div class="ht-cell" style="color:${iv.util > 90 ? 'var(--red)' : iv.util >= 50 ? 'var(--green)' : 'var(--blue)'}">${iv.util.toFixed(0)}%</div>
-      <div class="ht-cell">${badge}</div>`;
-    tbl.appendChild(row);
+      <div class="ht-cell">${rowModel.label}</div>
+      <div class="ht-cell">${rowModel.numCallsDisplay}</div>
+      <div class="ht-cell" style="color:${getToneVar(rowModel.avgWaitTone)}">${rowModel.avgWaitDisplay}</div>
+      <div class="ht-cell" style="color:${getToneVar(rowModel.slTone)}">${rowModel.slDisplay}</div>
+      <div class="ht-cell" style="color:${getToneVar(rowModel.abandonTone)}">${rowModel.abandonDisplay}</div>
+      <div class="ht-cell" style="color:${getToneVar(rowModel.utilTone)}">${rowModel.utilDisplay}</div>
+      <div class="ht-cell"><span class="status-badge ${rowModel.status.badgeClass}">${rowModel.status.label}</span></div>`;
+    table.appendChild(row);
   }
 
   setTimeout(() => {
-    drawVolChart(intervals);
-    drawAsaChart(intervals, serviceTarget);
-    drawUtilChart(intervals);
-    drawAbandonChart(intervals);
+    drawBarChart('chart-volume', simAnalysis.charts.volume, 160);
+    drawBarChart('chart-asa', simAnalysis.charts.asa, 160);
+    drawBarChart('chart-util', simAnalysis.charts.util, 140);
+    drawBarChart('chart-abandon', simAnalysis.charts.abandon, 140);
   }, 30);
 }
 
 function getCtx(id, hAttr) {
-  const cv = document.getElementById(id);
+  const canvas = document.getElementById(id);
   const dpr = window.devicePixelRatio || 1;
-  const W = cv.parentElement.clientWidth - 40;
+  const W = canvas.parentElement.clientWidth - 40;
   const H = hAttr;
-  cv.width = W * dpr;
-  cv.height = H * dpr;
-  const ctx = cv.getContext('2d');
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
   return { ctx, W, H };
 }
@@ -430,12 +427,12 @@ function filledRoundRect(ctx, x, y, w, h, r) {
   ctx.fill();
 }
 
-function drawBarChart({ canvasId, values, labels, colorFn, yMax, refVal, refColor, hAttr }) {
+function drawBarChart(canvasId, chart, hAttr) {
   const { ctx, W, H } = getCtx(canvasId, hAttr);
   const pad = { l: 40, r: 12, t: 12, b: 52 };
   const iW = W - pad.l - pad.r;
   const iH = H - pad.t - pad.b;
-  const mx = yMax || (Math.max(...values, 1) * 1.15);
+  const mx = chart.yMax || Math.max(...chart.values, 1) * 1.15;
 
   ctx.clearRect(0, 0, W, H);
 
@@ -453,91 +450,46 @@ function drawBarChart({ canvasId, values, labels, colorFn, yMax, refVal, refColo
     ctx.fillText(+(mx * i / 4).toFixed(1), pad.l - 5, y + 3);
   }
 
-  if (refVal !== undefined && refVal > 0 && refVal <= mx) {
-    const y = pad.t + iH - (refVal / mx) * iH;
+  if (chart.refValue !== undefined && chart.refValue > 0 && chart.refValue <= mx) {
+    const y = pad.t + iH - (chart.refValue / mx) * iH;
     ctx.save();
     ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = refColor || '#f59e0b';
+    ctx.strokeStyle = getToneColor(chart.refTone);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(pad.l, y);
     ctx.lineTo(pad.l + iW, y);
     ctx.stroke();
     ctx.restore();
-    ctx.fillStyle = refColor || '#f59e0b';
+    ctx.fillStyle = getToneColor(chart.refTone);
     ctx.font = '9px sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText('Target', pad.l + 3, y - 3);
   }
 
-  const bW = iW / values.length;
-  const gap = Math.max(2, bW * 0.18);
-  for (let i = 0; i < values.length; i++) {
-    const v = values[i];
-    const bh = (v / mx) * iH;
-    const x = pad.l + i * bW + gap / 2;
-    const y = pad.t + iH - bh;
-    ctx.fillStyle = colorFn(v, i);
-    filledRoundRect(ctx, x, y, bW - gap, Math.max(2, bh), 3);
+  const barWidth = iW / chart.values.length;
+  const gap = Math.max(2, barWidth * 0.18);
+  for (let i = 0; i < chart.values.length; i++) {
+    const value = chart.values[i];
+    const barHeight = (value / mx) * iH;
+    const x = pad.l + i * barWidth + gap / 2;
+    const y = pad.t + iH - barHeight;
+    ctx.fillStyle = getToneColor(chart.tones[i]);
+    filledRoundRect(ctx, x, y, barWidth - gap, Math.max(2, barHeight), 3);
   }
 
-  const step = Math.ceil(labels.length / 14);
+  const step = Math.ceil(chart.labels.length / 14);
   ctx.fillStyle = '#64748b';
   ctx.font = '9px sans-serif';
-  for (let i = 0; i < labels.length; i += step) {
-    const x = pad.l + (i + 0.5) * bW;
+  for (let i = 0; i < chart.labels.length; i += step) {
+    const x = pad.l + (i + 0.5) * barWidth;
     ctx.save();
     ctx.translate(x, H - 6);
     ctx.rotate(-Math.PI / 3.5);
     ctx.textAlign = 'right';
-    ctx.fillText(labels[i], 0, 0);
+    ctx.fillText(chart.labels[i], 0, 0);
     ctx.restore();
   }
-}
-
-function drawVolChart(intervals) {
-  drawBarChart({
-    canvasId: 'chart-volume',
-    values: intervals.map((i) => i.numCalls),
-    labels: intervals.map((i) => i.label),
-    colorFn: () => '#3b82f6',
-    hAttr: 160,
-  });
-}
-
-function drawAsaChart(intervals, target) {
-  drawBarChart({
-    canvasId: 'chart-asa',
-    values: intervals.map((i) => i.avgWaitS),
-    labels: intervals.map((i) => i.label),
-    colorFn: (v) => v > target * 2 ? '#ef4444' : v > target ? '#f59e0b' : '#10b981',
-    yMax: Math.max(...intervals.map((i) => i.avgWaitS), target * 2.5, 30),
-    refVal: target,
-    refColor: '#f59e0b',
-    hAttr: 160,
-  });
-}
-
-function drawUtilChart(intervals) {
-  drawBarChart({
-    canvasId: 'chart-util',
-    values: intervals.map((i) => i.util),
-    labels: intervals.map((i) => i.label),
-    colorFn: (v) => v > 100 ? '#dc2626' : v > 90 ? '#f97316' : v >= 50 ? '#10b981' : '#3b82f6',
-    yMax: Math.max(...intervals.map((i) => i.util), 100),
-    hAttr: 140,
-  });
-}
-
-function drawAbandonChart(intervals) {
-  drawBarChart({
-    canvasId: 'chart-abandon',
-    values: intervals.map((i) => i.abandonRate),
-    labels: intervals.map((i) => i.label),
-    colorFn: (v) => v > 15 ? '#ef4444' : v > 5 ? '#f59e0b' : '#10b981',
-    yMax: Math.max(...intervals.map((i) => i.abandonRate), 20),
-    hAttr: 140,
-  });
 }
 
 export function initInputs() {
@@ -635,14 +587,9 @@ function renderPreviewCanvas(p, data) {
   ctx.fillStyle = '#64748b';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
-  const totalHrs = p.shiftLength / 60;
-  for (let h = 0; h <= totalHrs; h++) {
-    const x = pad.l + (h / totalHrs) * iW;
-    ctx.fillText(
-      fmt12(p.shiftStart + h * 60).replace(':00', '').replace(' AM', ' ').replace(' PM', ' ').trim(),
-      x,
-      H - 5,
-    );
+  for (const axis of data.axisLabels || []) {
+    const x = pad.l + (axis.offsetMin / p.shiftLength) * iW;
+    ctx.fillText(axis.label, x, H - 5);
   }
 
   ctx.fillStyle = '#475569';
@@ -656,26 +603,26 @@ function renderPreviewCanvas(p, data) {
 }
 
 export function drawPreview() {
-  const p = getParams();
+  const params = getParams();
 
-  // Render immediately with cached data for snappy slider interaction
   if (_previewData) {
-    renderPreviewCanvas(p, _previewData);
+    renderPreviewCanvas(params, _previewData);
   }
 
-  // Debounce the API fetch to avoid flooding the server on rapid slider drags
-  if (_previewTimer) clearTimeout(_previewTimer);
+  if (_previewTimer) {
+    clearTimeout(_previewTimer);
+  }
   _previewTimer = setTimeout(async () => {
     try {
       const res = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          shiftStart: p.shiftStart,
-          shiftLength: p.shiftLength,
-          numAgents: p.numAgents,
-          breakDur: p.breakDur,
-          numBreaks: p.numBreaks,
+          shiftStart: params.shiftStart,
+          shiftLength: params.shiftLength,
+          numAgents: params.numAgents,
+          breakDur: params.breakDur,
+          numBreaks: params.numBreaks,
         }),
       });
       if (res.ok) {
@@ -683,12 +630,12 @@ export function drawPreview() {
         renderPreviewCanvas(getParams(), _previewData);
       }
     } catch {
-      // Silently fail — user still sees cached preview
+      // Silently fail — user still sees cached preview.
     }
   }, 80);
 }
 
 export function showScreen(id) {
-  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
