@@ -12,6 +12,7 @@ node_modules/
 # Tooling output
 .wrangler/
 coverage/
+public/
 
 # OS/editor noise
 .DS_Store
