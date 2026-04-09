@@ -1,17 +1,13 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, copyFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { listRootJsxFiles, toManifestJson } from './manifest-files.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(root, 'public');
-const rootFiles = readdirSync(root).filter((entry) => statSync(join(root, entry)).isFile());
-
-const jsxFiles = rootFiles
-  .filter((file) => file.endsWith('.jsx'))
-  .sort();
-
-const manifestJson = `${JSON.stringify(jsxFiles, null, 2)}\n`;
+const rootFiles = listRootJsxFiles(root);
+const manifestJson = toManifestJson(rootFiles);
 writeFileSync(join(root, 'jsx-manifest.json'), manifestJson);
 
 rmSync(publicDir, { recursive: true, force: true });
@@ -23,7 +19,7 @@ for (const file of ['index.html', 'iphone.html']) {
 writeFileSync(join(publicDir, 'jsx-manifest.json'), manifestJson);
 
 const seen = new Set();
-const queue = [...jsxFiles];
+const queue = [...rootFiles];
 
 function enqueueLocalImports(relativeFile) {
   const absFile = join(root, relativeFile);
