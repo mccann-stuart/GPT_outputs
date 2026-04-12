@@ -1,5 +1,15 @@
 # Changelog
 
+## Week of 2026-04-04 to 2026-04-10
+
+### Highlights
+- Moved simulator execution behind a Worker API and refactored the simulator into a server-driven thin client, adding coverage for the simulate engine, worker, and thin-client flows.
+- Fixed stuck simulator sliders by restoring default-value handling and inlined the simulation client into the JSX bundle with a smoke-test loader.
+- Tidied project metadata and npm scripts by removing generated `public/` assets from source control and introducing manifest support for regenerated outputs.
+
+### Key PRs
+- [#29](https://github.com/mccann-stuart/GPT_outputs/pull/29) Tidy project metadata and npm scripts
+
 ## Week of 2026-03-28 to 2026-04-03
 
 ### Highlights
