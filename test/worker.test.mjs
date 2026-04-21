@@ -79,6 +79,34 @@ test('worker returns 400 for invalid payload', async () => {
   assert.match(body.error, /shiftLength/i);
 });
 
+test('worker rejects non-json api payloads', async () => {
+  const request = new Request('https://example.com/api/simulate', {
+    method: 'POST',
+    headers: { 'content-type': 'text/plain' },
+    body: JSON.stringify(validPayload),
+  });
+
+  const response = await worker.fetch(request, makeEnv(), {});
+  const body = await response.json();
+
+  assert.equal(response.status, 415);
+  assert.match(body.error, /application\/json/i);
+});
+
+test('worker rejects oversized api payloads', async () => {
+  const request = new Request('https://example.com/api/simulate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...validPayload, padding: 'x'.repeat(5000) }),
+  });
+
+  const response = await worker.fetch(request, makeEnv(), {});
+  const body = await response.json();
+
+  assert.equal(response.status, 413);
+  assert.match(body.error, /bytes or less/i);
+});
+
 test('worker returns 405 for non-POST simulate requests', async () => {
   const request = new Request('https://example.com/api/simulate', { method: 'GET' });
   const response = await worker.fetch(request, makeEnv(), {});

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>JSX Viewer - Mobile</title>
@@ -263,12 +263,28 @@
         let ALLOWED_FILES = [];
 
         const SHARE_PARAM = 'state';
+        const MAX_SHARED_STATE_LENGTH = 12000;
+
+        function isSafeObjectKey(key) {
+            return key !== '__proto__' && key !== 'prototype' && key !== 'constructor';
+        }
+
+        function isAllowedManifestFile(value) {
+            return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*\.jsx$/.test(value);
+        }
 
         async function fetchManifest() {
             const res = await fetch('jsx-manifest.json');
             if (!res.ok) throw new Error('Failed to load jsx-manifest.json');
-            ALLOWED_FILES = await res.json();
-            selectEl.innerHTML = '';
+            const manifest = await res.json();
+            if (!Array.isArray(manifest)) {
+                throw new Error('JSX manifest must be an array');
+            }
+            ALLOWED_FILES = manifest.filter(isAllowedManifestFile);
+            if (ALLOWED_FILES.length === 0) {
+                throw new Error('JSX manifest does not contain any loadable files');
+            }
+            selectEl.textContent = '';
             ALLOWED_FILES.forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f;
@@ -301,6 +317,7 @@
             if (isPlainObject(value)) {
                 const copy = {};
                 Object.keys(value).forEach((key) => {
+                    if (!isSafeObjectKey(key)) return;
                     copy[key] = deepClone(value[key]);
                 });
                 return copy;
@@ -319,8 +336,8 @@
                 return true;
             }
             if (isPlainObject(a) && isPlainObject(b)) {
-                const aKeys = Object.keys(a);
-                const bKeys = Object.keys(b);
+                const aKeys = Object.keys(a).filter(isSafeObjectKey);
+                const bKeys = Object.keys(b).filter(isSafeObjectKey);
                 if (aKeys.length !== bKeys.length) return false;
                 for (const key of aKeys) {
                     if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
@@ -339,6 +356,7 @@
                 const merged = {};
                 const keys = new Set([...Object.keys(defaultValue), ...Object.keys(overrideValue)]);
                 keys.forEach((key) => {
+                    if (!isSafeObjectKey(key)) return;
                     merged[key] = applyOverrides(defaultValue[key], overrideValue[key]);
                 });
                 return merged;
@@ -354,6 +372,7 @@
             if (isPlainObject(currentValue) && isPlainObject(defaultValue)) {
                 const delta = {};
                 Object.keys(currentValue).forEach((key) => {
+                    if (!isSafeObjectKey(key)) return;
                     const child = diffFromDefaults(currentValue[key], defaultValue[key]);
                     if (child !== undefined) {
                         delta[key] = child;
@@ -390,6 +409,7 @@
 
         function parseSharedState(encoded) {
             if (!encoded) return null;
+            if (encoded.length > MAX_SHARED_STATE_LENGTH) return null;
             try {
                 const parsed = decodeBase64Url(encoded);
                 if (!isPlainObject(parsed) || typeof parsed.file !== 'string') return null;

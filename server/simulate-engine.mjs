@@ -38,6 +38,12 @@ function assertInRange(value, name, min, max) {
   }
 }
 
+function assertInteger(value, name) {
+  if (!Number.isInteger(value)) {
+    throw new TypeError(`${name} must be an integer`);
+  }
+}
+
 function toneForAsa(value, serviceTarget) {
   if (value <= serviceTarget) {
     return 'green';
@@ -59,8 +65,11 @@ function toneForSl(value) {
 }
 
 function toneForUtil(value) {
-  if (value > 90) {
+  if (value > 100) {
     return 'red';
+  }
+  if (value >= 90) {
+    return 'amber';
   }
   if (value >= 50) {
     return 'green';
@@ -245,12 +254,16 @@ export function normalizeSimulationParams(raw = {}) {
     abandonTime: toFiniteNumber(raw.abandonTime, 'abandonTime'),
   };
 
-  assertInRange(params.numAgents, 'numAgents', 0, 500);
+  assertInteger(params.numAgents, 'numAgents');
+  assertInteger(params.numBreaks, 'numBreaks');
+  assertInteger(params.expectedCalls, 'expectedCalls');
+
+  assertInRange(params.numAgents, 'numAgents', 0, 100);
   assertInRange(params.shiftStart, 'shiftStart', 0, 24 * 60);
   assertInRange(params.shiftLength, 'shiftLength', 1, 24 * 60);
   assertInRange(params.breakDur, 'breakDur', 0, 240);
   assertInRange(params.numBreaks, 'numBreaks', 0, 10);
-  assertInRange(params.expectedCalls, 'expectedCalls', 0, 100000);
+  assertInRange(params.expectedCalls, 'expectedCalls', 0, 10000);
   assertInRange(params.aht, 'aht', 0.1, 24 * 60);
   assertInRange(params.serviceTarget, 'serviceTarget', 0, 3600);
   assertInRange(params.abandonTime, 'abandonTime', 1, 24 * 60 * 60);
@@ -573,9 +586,12 @@ export function computePreview(raw = {}) {
   const breakDur = toFiniteNumber(raw.breakDur, 'breakDur');
   const numBreaks = toFiniteNumber(raw.numBreaks, 'numBreaks');
 
+  assertInteger(numAgents, 'numAgents');
+  assertInteger(numBreaks, 'numBreaks');
+
   assertInRange(shiftStart, 'shiftStart', 0, 24 * 60);
   assertInRange(shiftLength, 'shiftLength', 1, 24 * 60);
-  assertInRange(numAgents, 'numAgents', 0, 500);
+  assertInRange(numAgents, 'numAgents', 0, 100);
   assertInRange(breakDur, 'breakDur', 0, 240);
   assertInRange(numBreaks, 'numBreaks', 0, 10);
 

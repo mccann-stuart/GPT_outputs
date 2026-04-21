@@ -461,4 +461,18 @@ Create a Python Jupyter Notebook that simulates UK income tax reform by removing
 
 Build a .ipynb notebook in Python for a UK income tax simulation. Use configurable input parameters and either microdata or synthetic income distribution data. Model the current baseline tax system in simplified form, then simulate reforms that remove the tax-free personal allowance and replace the system with either a two-band or three-band flat tax schedule starting from the first pound of income, with no deductions or reliefs. Output total baseline tax revenue, reform revenue, static revenue change, behaviour-adjusted revenue change using ETI-based behavioural assumptions, and distributional impacts by income decile. Include modular code, markdown explanations, validation checks, scenario comparison tables, sensitivity analysis, and visualisations of revenue and decile impacts.
 
-If useful, I can also turn this into a tighter “builder prompt” optimised specifically for Claude, GPT, or Cursor.
+⸻
+
+21. Red-Team and QA Guardrails
+
+The notebook implementation should include explicit safeguards before any modelling outputs are trusted:
+	•	validate required columns, numeric types, non-negative incomes, non-negative weights, and unique taxpayer identifiers where available;
+	•	reject or quarantine rows with impossible values rather than silently coercing them;
+	•	cap synthetic population expansion so scenario inputs cannot create accidental memory blow-ups;
+	•	show row counts and weighted totals before and after validation;
+	•	make all parameter bounds explicit, especially tax rates, thresholds, ETI values, and participation assumptions;
+	•	flag reform scenarios where thresholds are unsorted, rates are outside 0% to 100%, or behavioural assumptions imply implausible income changes;
+	•	run at least one baseline smoke test, one zero-income test, one top-decile sensitivity test, and one invalid-input test;
+	•	label charts and tables as model outputs, not official fiscal scores.
+
+For handover, include a short "Known limitations" markdown cell immediately before the final interpretation section.

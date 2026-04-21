@@ -1,5 +1,14 @@
 import { buildSimulationViewModel, computePreview } from '../server/simulate-engine.mjs';
 
+const MAX_JSON_BODY_BYTES = 4096;
+
+class ApiRequestError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
@@ -14,6 +23,30 @@ function errorResponse(status, message) {
   return json({ error: message }, { status });
 }
 
+async function readJsonPayload(request) {
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new ApiRequestError(415, 'Request content-type must be application/json');
+  }
+
+  const contentLength = Number(request.headers.get('content-length') || 0);
+  if (contentLength > MAX_JSON_BODY_BYTES) {
+    throw new ApiRequestError(413, `Request body must be ${MAX_JSON_BODY_BYTES} bytes or less`);
+  }
+
+  const bodyText = await request.text();
+  const bodyBytes = new TextEncoder().encode(bodyText).length;
+  if (bodyBytes > MAX_JSON_BODY_BYTES) {
+    throw new ApiRequestError(413, `Request body must be ${MAX_JSON_BODY_BYTES} bytes or less`);
+  }
+
+  try {
+    return JSON.parse(bodyText);
+  } catch {
+    throw new ApiRequestError(400, 'Request body must be valid JSON');
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -25,8 +58,11 @@ export default {
 
       let payload;
       try {
-        payload = await request.json();
-      } catch {
+        payload = await readJsonPayload(request);
+      } catch (error) {
+        if (error instanceof ApiRequestError) {
+          return errorResponse(error.status, error.message);
+        }
         return errorResponse(400, 'Request body must be valid JSON');
       }
 
@@ -44,8 +80,11 @@ export default {
 
       let payload;
       try {
-        payload = await request.json();
-      } catch {
+        payload = await readJsonPayload(request);
+      } catch (error) {
+        if (error instanceof ApiRequestError) {
+          return errorResponse(error.status, error.message);
+        }
         return errorResponse(400, 'Request body must be valid JSON');
       }
 

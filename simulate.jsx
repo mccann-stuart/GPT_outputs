@@ -37,6 +37,14 @@ const TONE_TO_COLOR = {
   blue: '#3b82f6',
 };
 
+const ACTIVITY_CLASS_NAMES = new Set(['arrive', 'answer', 'brk', 'abandon']);
+const STATUS_BADGE_CLASS_NAMES = new Set([
+  'badge-stressed',
+  'badge-elevated',
+  'badge-quiet',
+  'badge-optimal',
+]);
+
 function fmt12(min) {
   const h = Math.floor(min / 60) % 24;
   const m = Math.floor(min % 60);
@@ -69,6 +77,31 @@ function getToneVar(tone) {
 
 function getToneColor(tone) {
   return TONE_TO_COLOR[tone] || '#64748b';
+}
+
+function clearChildren(element) {
+  while (element.lastChild) {
+    element.lastChild.remove();
+  }
+}
+
+function safeActivityClass(className) {
+  return ACTIVITY_CLASS_NAMES.has(className) ? className : '';
+}
+
+function safeStatusBadgeClass(className) {
+  return STATUS_BADGE_CLASS_NAMES.has(className) ? className : 'badge-optimal';
+}
+
+function appendTextCell(row, text, color) {
+  const cell = document.createElement('div');
+  cell.className = 'ht-cell';
+  cell.textContent = text;
+  if (color) {
+    cell.style.color = color;
+  }
+  row.appendChild(cell);
+  return cell;
 }
 
 function getParams() {
@@ -112,12 +145,19 @@ function cancelAnimation() {
 
 function buildGrid(n) {
   const grid = document.getElementById('agent-grid');
-  grid.innerHTML = '';
+  clearChildren(grid);
   for (let i = 0; i < n; i++) {
     const card = document.createElement('div');
     card.className = 'agent-card idle';
     card.id = `ag-${i}`;
-    card.innerHTML = `<div class="a-icon">👤</div><div class="a-num">${i + 1}</div>`;
+    const icon = document.createElement('div');
+    icon.className = 'a-icon';
+    icon.textContent = '👤';
+    const label = document.createElement('div');
+    label.className = 'a-num';
+    label.textContent = String(i + 1);
+    card.appendChild(icon);
+    card.appendChild(label);
     grid.appendChild(card);
   }
 }
@@ -228,8 +268,10 @@ function updateSimUI() {
 
   const dotsEl = document.getElementById('queue-dots');
   const show = Math.min(st.queue, 24);
-  if (dotsEl.children.length !== show) {
-    dotsEl.innerHTML = '';
+  const dotsRenderKey = `${show}:${st.queue > 24 ? st.queue - 24 : 0}`;
+  if (dotsEl.dataset.renderKey !== dotsRenderKey) {
+    dotsEl.dataset.renderKey = dotsRenderKey;
+    clearChildren(dotsEl);
     for (let i = 0; i < show; i++) {
       const dot = document.createElement('div');
       dot.className = 'q-dot';
@@ -244,9 +286,13 @@ function updateSimUI() {
   }
 
   const list = document.getElementById('activity-list');
-  list.innerHTML = actLog.map((activity) => (
-    `<li class="act-item ${activity.cls}">${activity.text}</li>`
-  )).join('');
+  clearChildren(list);
+  for (const activity of actLog) {
+    const item = document.createElement('li');
+    item.className = ['act-item', safeActivityClass(activity.cls)].filter(Boolean).join(' ');
+    item.textContent = activity.text;
+    list.appendChild(item);
+  }
 }
 
 function animTick(ts) {
@@ -382,14 +428,17 @@ export function showAnalysis() {
   for (const rowModel of simAnalysis.hotspots) {
     const row = document.createElement('div');
     row.className = 'ht-row';
-    row.innerHTML = `
-      <div class="ht-cell">${rowModel.label}</div>
-      <div class="ht-cell">${rowModel.numCallsDisplay}</div>
-      <div class="ht-cell" style="color:${getToneVar(rowModel.avgWaitTone)}">${rowModel.avgWaitDisplay}</div>
-      <div class="ht-cell" style="color:${getToneVar(rowModel.slTone)}">${rowModel.slDisplay}</div>
-      <div class="ht-cell" style="color:${getToneVar(rowModel.abandonTone)}">${rowModel.abandonDisplay}</div>
-      <div class="ht-cell" style="color:${getToneVar(rowModel.utilTone)}">${rowModel.utilDisplay}</div>
-      <div class="ht-cell"><span class="status-badge ${rowModel.status.badgeClass}">${rowModel.status.label}</span></div>`;
+    appendTextCell(row, rowModel.label);
+    appendTextCell(row, rowModel.numCallsDisplay);
+    appendTextCell(row, rowModel.avgWaitDisplay, getToneVar(rowModel.avgWaitTone));
+    appendTextCell(row, rowModel.slDisplay, getToneVar(rowModel.slTone));
+    appendTextCell(row, rowModel.abandonDisplay, getToneVar(rowModel.abandonTone));
+    appendTextCell(row, rowModel.utilDisplay, getToneVar(rowModel.utilTone));
+    const statusCell = appendTextCell(row, '');
+    const badge = document.createElement('span');
+    badge.className = `status-badge ${safeStatusBadgeClass(rowModel.status.badgeClass)}`;
+    badge.textContent = rowModel.status.label;
+    statusCell.appendChild(badge);
     table.appendChild(row);
   }
 
@@ -404,7 +453,8 @@ export function showAnalysis() {
 function getCtx(id, hAttr) {
   const canvas = document.getElementById(id);
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.parentElement.clientWidth - 40;
+  const rawWidth = canvas.parentElement?.clientWidth || canvas.clientWidth || 600;
+  const W = Math.max(160, rawWidth - 40);
   const H = hAttr;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
@@ -429,6 +479,10 @@ function filledRoundRect(ctx, x, y, w, h, r) {
 
 function drawBarChart(canvasId, chart, hAttr) {
   const { ctx, W, H } = getCtx(canvasId, hAttr);
+  if (!chart || !Array.isArray(chart.values) || chart.values.length === 0) {
+    ctx.clearRect(0, 0, W, H);
+    return;
+  }
   const pad = { l: 40, r: 12, t: 12, b: 52 };
   const iW = W - pad.l - pad.r;
   const iH = H - pad.t - pad.b;
@@ -478,16 +532,17 @@ function drawBarChart(canvasId, chart, hAttr) {
     filledRoundRect(ctx, x, y, barWidth - gap, Math.max(2, barHeight), 3);
   }
 
-  const step = Math.ceil(chart.labels.length / 14);
+  const labels = Array.isArray(chart.labels) ? chart.labels : [];
+  const step = Math.max(1, Math.ceil(labels.length / 14));
   ctx.fillStyle = '#64748b';
   ctx.font = '9px sans-serif';
-  for (let i = 0; i < chart.labels.length; i += step) {
+  for (let i = 0; i < labels.length; i += step) {
     const x = pad.l + (i + 0.5) * barWidth;
     ctx.save();
     ctx.translate(x, H - 6);
     ctx.rotate(-Math.PI / 3.5);
     ctx.textAlign = 'right';
-    ctx.fillText(chart.labels[i], 0, 0);
+    ctx.fillText(labels[i], 0, 0);
     ctx.restore();
   }
 }
@@ -519,7 +574,8 @@ export function initInputs() {
 
 function renderPreviewCanvas(p, data) {
   const canvas = document.getElementById('call-preview');
-  const W = canvas.parentElement.clientWidth - 40 || 600;
+  const rawWidth = canvas.parentElement?.clientWidth || canvas.clientWidth || 640;
+  const W = Math.max(160, rawWidth - 40);
   const H = 90;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = W * dpr;
@@ -1085,7 +1141,121 @@ input[type="range"] {
 .badge-optimal { background: #052e16; color: var(--green); }
 .badge-stressed { background: #450a0a; color: var(--red); }
 .badge-elevated { background: #451a03; color: var(--amber); }
-.badge-quiet { background: #0c1a4a; color: #60a5fa; }` }} />
+.badge-quiet { background: #0c1a4a; color: #60a5fa; }
+
+@media (max-width: 900px) {
+  .input-body,
+  .summary-cards,
+  .charts-area {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .input-footer,
+  .hotspot-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .sim-header,
+  .analysis-header,
+  .sim-footer {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .sim-body {
+    flex-direction: column;
+    overflow: auto;
+  }
+  .agent-panel {
+    min-height: 280px;
+  }
+  .stats-panel {
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .activity-box {
+    grid-column: 1 / -1;
+  }
+  .hotspot-table {
+    overflow-x: auto;
+  }
+  .ht-row {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 640px) {
+  .input-header {
+    padding: 1.5rem 1rem 1rem;
+  }
+  .input-header h1 {
+    font-size: 1.45rem;
+    line-height: 1.18;
+  }
+  .input-body,
+  .summary-cards,
+  .charts-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .input-card,
+  .preview-card,
+  .sum-card,
+  .chart-card {
+    border-radius: 8px;
+  }
+  .run-btn {
+    width: 100%;
+  }
+  .sim-clock {
+    font-size: 1.35rem;
+    min-width: 4.75rem;
+  }
+  .speed-group {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.1rem;
+  }
+  .speed-btn {
+    flex: 0 0 auto;
+  }
+  .agent-panel,
+  .stats-panel,
+  .sim-header,
+  .sim-footer,
+  .analysis-header {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .legend {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  #agent-grid {
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  }
+  .stats-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sim-footer {
+    align-items: stretch;
+  }
+  .view-btn,
+  .rerun-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+  .analysis-header h1 {
+    width: 100%;
+    font-size: 1.1rem;
+  }
+  .chart-card canvas {
+    min-height: 120px;
+  }
+}` }} />
       {/* ═══════════════════════════════════════════════════════════
      SCREEN 1 — INPUTS
 ═══════════════════════════════════════════════════════════ */}

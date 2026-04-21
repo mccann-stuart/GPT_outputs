@@ -38,8 +38,11 @@ function toneForSl(value) {
 }
 
 function toneForUtil(value) {
-  if (value > 90) {
+  if (value > 100) {
     return 'red';
+  }
+  if (value >= 90) {
+    return 'amber';
   }
   if (value >= 50) {
     return 'green';
@@ -91,6 +94,8 @@ test('normalizeSimulationParams rejects invalid payloads', () => {
   assert.throws(() => normalizeSimulationParams(null), /payload must be an object/i);
   assert.throws(() => normalizeSimulationParams({ ...baseParams, shiftLength: 0 }), /shiftLength/i);
   assert.throws(() => normalizeSimulationParams({ ...baseParams, abandonTime: 'x' }), /abandonTime/i);
+  assert.throws(() => normalizeSimulationParams({ ...baseParams, numAgents: 1.5 }), /numAgents.*integer/i);
+  assert.throws(() => normalizeSimulationParams({ ...baseParams, expectedCalls: 10001 }), /expectedCalls/i);
 });
 
 test('runSimulation is deterministic with an injected RNG', () => {

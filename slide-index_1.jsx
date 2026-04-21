@@ -3,6 +3,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 const STORAGE_KEY = "slidevault-v2";
 const THUMB_W = 320;
 const THUMB_H = 180;
+const MAX_PPTX_BYTES = 50 * 1024 * 1024;
+const MAX_SLIDES_PER_FILE = 300;
+const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
 
 /* ───────── external lib loaders ───────── */
 async function loadJSZip() {
@@ -10,6 +13,8 @@ async function loadJSZip() {
   return new Promise((res, rej) => {
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    s.crossOrigin = "anonymous";
+    s.referrerPolicy = "no-referrer";
     s.onload = () => res(window.JSZip);
     s.onerror = () => rej(new Error("Failed to load JSZip"));
     document.head.appendChild(s);
@@ -21,6 +26,8 @@ async function loadTesseract() {
   return new Promise((res, rej) => {
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js";
+    s.crossOrigin = "anonymous";
+    s.referrerPolicy = "no-referrer";
     s.onload = () => res(window.Tesseract);
     s.onerror = () => rej(new Error("Failed to load Tesseract.js"));
     document.head.appendChild(s);
@@ -144,6 +151,10 @@ async function renderThumb(shapes, pics, images, dims, bg) {
 
 /* ───────── Process PPTX ───────── */
 async function processPPTX(file, JSZip, onP) {
+  if (file.size > MAX_PPTX_BYTES) {
+    throw new Error(`${file.name} exceeds the ${Math.round(MAX_PPTX_BYTES / 1024 / 1024)} MB file limit`);
+  }
+
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
   let dims = { cx: 12192000, cy: 6858000 };
   if (zip.files["ppt/presentation.xml"]) dims = getSlideDims(await zip.files["ppt/presentation.xml"].async("string"));
@@ -151,10 +162,19 @@ async function processPPTX(file, JSZip, onP) {
   const slideFiles = Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))
     .sort((a, b) => parseInt(a.match(/slide(\d+)/)[1]) - parseInt(b.match(/slide(\d+)/)[1]));
 
+  if (slideFiles.length > MAX_SLIDES_PER_FILE) {
+    throw new Error(`${file.name} has ${slideFiles.length} slides; max supported is ${MAX_SLIDES_PER_FILE}`);
+  }
+
   const media = {};
+  let mediaBytes = 0;
   for (const mk of Object.keys(zip.files).filter((n) => n.startsWith("ppt/media/"))) {
     try {
       const blob = await zip.files[mk].async("blob");
+      mediaBytes += blob.size;
+      if (mediaBytes > MAX_MEDIA_BYTES) {
+        continue;
+      }
       const ext = mk.split(".").pop().toLowerCase();
       const mimes = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif" };
       media[mk] = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(new Blob([blob], { type: mimes[ext] || "image/png" })); });
@@ -354,8 +374,10 @@ export default function SlideVault() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await window.storage.get(STORAGE_KEY);
-        if (r?.value) { const d = JSON.parse(r.value); if (d.slides) setSlides(d.slides); if (d.fileStats) setFileStats(d.fileStats); if (d.favorites) setFavs(new Set(d.favorites)); }
+        if (window.storage?.get) {
+          const r = await window.storage.get(STORAGE_KEY);
+          if (r?.value) { const d = JSON.parse(r.value); if (d.slides) setSlides(d.slides); if (d.fileStats) setFileStats(d.fileStats); if (d.favorites) setFavs(new Set(d.favorites)); }
+        }
       } catch (e) {}
       setReady(true);
     })();
@@ -363,15 +385,21 @@ export default function SlideVault() {
 
   const save = useCallback(async (s, fs, fv) => {
     try {
+      if (!window.storage?.set) return;
       const trim = s.map((sl) => ({ ...sl, imageUrls: [], thumbnail: sl.thumbnail?.substring(0, 60000) || null }));
       await window.storage.set(STORAGE_KEY, JSON.stringify({ slides: trim, fileStats: fs, favorites: [...fv] }));
     } catch (e) { console.error("Save failed", e); }
   }, []);
 
   const processFiles = useCallback(async (files) => {
-    const pf = Array.from(files).filter((f) => f.name.endsWith(".pptx"));
-    if (!pf.length) { setProg("Only .pptx supported"); setTimeout(() => setProg(""), 3000); return; }
+    const incoming = Array.from(files);
+    const pf = incoming.filter((f) => f.name.toLowerCase().endsWith(".pptx") && f.size <= MAX_PPTX_BYTES);
+    if (!pf.length) { setProg("Only .pptx files up to 50 MB are supported"); setTimeout(() => setProg(""), 3000); return; }
     setLoading(true);
+    if (pf.length < incoming.length) {
+      setProg(`${incoming.length - pf.length} file(s) skipped`);
+      await new Promise((r) => setTimeout(r, 900));
+    }
     let JSZip;
     try { setProg("Loading parser..."); JSZip = await loadJSZip(); } catch (e) { setProg("Failed to load JSZip"); setLoading(false); return; }
     const ns = [...slides]; const nfs = { ...fileStats };
@@ -419,9 +447,10 @@ export default function SlideVault() {
   }, [slides, fileStats, save]);
 
   const clearAll = useCallback(async () => {
+    if (slides.length > 0 && typeof window.confirm === "function" && !window.confirm("Clear all indexed slides?")) return;
     setSlides([]); setFileStats({}); setFavs(new Set()); setDeck(null); setFavsOnly(false);
-    try { await window.storage.delete(STORAGE_KEY); } catch (e) {}
-  }, []);
+    try { if (window.storage?.delete) await window.storage.delete(STORAGE_KEY); } catch (e) {}
+  }, [slides.length]);
 
   const filtered = useMemo(() => {
     let r = slides;

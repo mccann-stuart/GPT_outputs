@@ -269,12 +269,28 @@
         let ALLOWED_FILES = [];
 
         const SHARE_PARAM = 'state';
+        const MAX_SHARED_STATE_LENGTH = 12000;
+
+        function isSafeObjectKey(key) {
+            return key !== '__proto__' && key !== 'prototype' && key !== 'constructor';
+        }
+
+        function isAllowedManifestFile(value) {
+            return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*\.jsx$/.test(value);
+        }
 
         async function fetchManifest() {
             const res = await fetch('jsx-manifest.json');
             if (!res.ok) throw new Error('Failed to load jsx-manifest.json');
-            ALLOWED_FILES = await res.json();
-            selectEl.innerHTML = '';
+            const manifest = await res.json();
+            if (!Array.isArray(manifest)) {
+                throw new Error('JSX manifest must be an array');
+            }
+            ALLOWED_FILES = manifest.filter(isAllowedManifestFile);
+            if (ALLOWED_FILES.length === 0) {
+                throw new Error('JSX manifest does not contain any loadable files');
+            }
+            selectEl.textContent = '';
             ALLOWED_FILES.forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f;
@@ -321,6 +337,7 @@
             if (isPlainObject(value)) {
                 const copy = {};
                 Object.keys(value).forEach((key) => {
+                    if (!isSafeObjectKey(key)) return;
                     copy[key] = deepClone(value[key]);
                 });
                 return copy;
@@ -339,8 +356,8 @@
                 return true;
             }
             if (isPlainObject(a) && isPlainObject(b)) {
-                const aKeys = Object.keys(a);
-                const bKeys = Object.keys(b);
+                const aKeys = Object.keys(a).filter(isSafeObjectKey);
+                const bKeys = Object.keys(b).filter(isSafeObjectKey);
                 if (aKeys.length !== bKeys.length) return false;
                 for (const key of aKeys) {
                     if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
@@ -359,6 +376,7 @@
                 const merged = {};
                 const keys = new Set([...Object.keys(defaultValue), ...Object.keys(overrideValue)]);
                 keys.forEach((key) => {
+                    if (!isSafeObjectKey(key)) return;
                     merged[key] = applyOverrides(defaultValue[key], overrideValue[key]);
                 });
                 return merged;
@@ -374,6 +392,7 @@
             if (isPlainObject(currentValue) && isPlainObject(defaultValue)) {
                 const delta = {};
                 Object.keys(currentValue).forEach((key) => {
+                    if (!isSafeObjectKey(key)) return;
                     const child = diffFromDefaults(currentValue[key], defaultValue[key]);
                     if (child !== undefined) {
                         delta[key] = child;
@@ -410,6 +429,7 @@
 
         function parseSharedState(encoded) {
             if (!encoded) return null;
+            if (encoded.length > MAX_SHARED_STATE_LENGTH) return null;
             try {
                 const parsed = decodeBase64Url(encoded);
                 if (!isPlainObject(parsed) || typeof parsed.file !== 'string') return null;
@@ -419,6 +439,22 @@
                 console.warn('Invalid shared state in URL:', err);
                 return null;
             }
+        }
+
+        function getStateFromUrl(urlLike) {
+            const searchParams = new URL(urlLike, window.location.origin).searchParams;
+            const sharedState = parseSharedState(searchParams.get(SHARE_PARAM));
+            const fileParam = searchParams.get('file');
+            const defaultFile = ALLOWED_FILES[0];
+            const requestedFile = sharedState?.file || fileParam || defaultFile;
+            const initialFile = ALLOWED_FILES.includes(requestedFile) ? requestedFile : defaultFile;
+            const initialOverrides = initialFile === sharedState?.file
+                ? (sharedState?.overrides || {})
+                : {};
+            return {
+                initialFile,
+                initialOverrides
+            };
         }
 
         function updateFileInputs(filename) {
@@ -593,12 +629,25 @@
             if (!link) return;
             try {
                 await navigator.clipboard.writeText(link);
+                const originalText = copyLinkBtn.textContent;
+                copyLinkBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyLinkBtn.textContent = originalText;
+                }, 2000);
             } catch (err) {
                 console.warn('Clipboard API unavailable, falling back to text selection.', err);
                 shareUrlEl.focus();
                 shareUrlEl.select();
                 document.execCommand('copy');
             }
+        });
+
+        window.addEventListener('popstate', () => {
+            const { initialFile, initialOverrides } = getStateFromUrl(window.location.href);
+            loadJSX(initialFile, {
+                initialSettingsOverrides: initialOverrides,
+                pushHistory: false
+            });
         });
 
 
@@ -612,11 +661,7 @@
                     `Failed to load JSX manifest:\n\n${err.message}`));
                 return;
             }
-            const urlParams = new URLSearchParams(window.location.search);
-            const sharedState = parseSharedState(urlParams.get(SHARE_PARAM));
-            const fileParam = urlParams.get('file');
-            const initialFile = sharedState?.file || fileParam || ALLOWED_FILES[0];
-            const initialOverrides = sharedState?.overrides || {};
+            const { initialFile, initialOverrides } = getStateFromUrl(window.location.href);
 
             updateFileInputs(initialFile);
             loadJSX(initialFile, {

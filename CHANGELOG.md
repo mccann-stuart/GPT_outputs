@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Security
+- Hardened API request handling with JSON content-type checks, request-size limits, integer count validation, and tighter simulation bounds.
+- Sanitised viewer shared-state merging by filtering unsafe object keys and falling back to manifest-approved JSX files.
+- Replaced simulator activity and hotspot HTML string rendering with DOM text rendering for API-provided values.
+- Added SlideVault file, slide-count, and extracted-media caps for local `.pptx` ingestion.
+
+### Fixed
+- Improved simulator responsiveness across tablet and phone widths, including input cards, simulation controls, charts, summary cards, and hotspot tables.
+- Aligned utilisation status colours so 90-100% utilisation is shown as high/amber and only over-100% demand is red.
+- Added desktop viewer back/forward state handling and copy-link feedback, matching the mobile viewer behaviour more closely.
+
+## Week of 2026-04-11 to 2026-04-17
+
+### Highlights
+- No substantive feature or fix work landed in repo history for this week; the only post-cutoff `main` commit updated `CHANGELOG.md` and `.DS_Store` on 2026-04-12.
+
+### Key PRs
+- No linked GitHub PRs were present in repo history for this week's commits.
+
 ## Week of 2026-04-04 to 2026-04-10
 
 ### Highlights
