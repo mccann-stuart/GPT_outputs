@@ -1,9 +1,0 @@
-- generic [active] [ref=e1]:
-  - button "⚙️" [ref=e2] [cursor=pointer]
-  - option "claudegammamodel.jsx" [selected]
-  - option "frame.jsx"
-  - option "mewmodel.jsx"
-  - option "simulate.jsx"
-  - option "slide-index_1.jsx"
-  - option "truelayer-calculator-reverse-engineered.jsx"
-  - generic [ref=e4]: Loading claudegammamodel.jsx...
