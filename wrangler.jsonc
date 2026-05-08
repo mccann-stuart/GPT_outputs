@@ -9,6 +9,12 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "GITHUB_REPO": "mccann-stuart/GPT_outputs",
+    "GITHUB_BRANCH": "main",
+    "GITHUB_AUTHOR_NAME": "GPT Outputs Upload",
+    "GITHUB_AUTHOR_EMAIL": "uploads@gpt-outputs.local"
+  },
   "assets": {
     "directory": "public",
     "binding": "ASSETS",

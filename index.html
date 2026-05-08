@@ -97,6 +97,10 @@
             max-width: calc(100vw - 48px);
         }
 
+        #top-bar.upload-open {
+            width: 360px;
+        }
+
         #top-bar.hidden {
             opacity: 0;
             visibility: hidden;
@@ -141,6 +145,84 @@
             gap: 10px;
         }
 
+        .upload-section {
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding-top: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .upload-section.hidden {
+            display: none;
+        }
+
+        .upload-dropzone {
+            border: 1px dashed rgba(108, 61, 255, 0.45);
+            border-radius: 8px;
+            padding: 14px;
+            background: rgba(108, 61, 255, 0.06);
+            color: #3f365f;
+            cursor: pointer;
+            display: grid;
+            gap: 4px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .upload-dropzone.drag-over {
+            border-color: #6c3dff;
+            background: rgba(108, 61, 255, 0.12);
+        }
+
+        .upload-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .upload-hint,
+        .upload-status {
+            color: #5d6473;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .upload-file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 4px;
+            max-height: 96px;
+            overflow: auto;
+        }
+
+        .upload-file-list li {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 6px;
+            color: #333;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            overflow: hidden;
+            padding: 6px 8px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .upload-error {
+            color: #b42318;
+            background: #fff1f0;
+            border: 1px solid #ffccc7;
+            border-radius: 6px;
+            display: none;
+            font-size: 12px;
+            line-height: 1.35;
+            padding: 8px;
+        }
+
+        .upload-error.visible {
+            display: block;
+        }
+
         #top-bar select,
         #top-bar input {
             padding: 8px 12px;
@@ -180,6 +262,19 @@
 
         #copy-link-btn:hover {
             background: #0f6944;
+        }
+
+        #upload-toggle-btn {
+            background: #2f6fed;
+        }
+
+        #upload-toggle-btn:hover {
+            background: #255fce;
+        }
+
+        #upload-submit-btn:disabled {
+            background: #9aa3b2;
+            cursor: not-allowed;
         }
 
         #share-url {
@@ -225,6 +320,21 @@
         <div class="panel-row" style="justify-content: flex-start; gap: 8px;">
             <button id="reset-btn" type="button">Reset</button>
             <button id="copy-link-btn" type="button">Copy Link</button>
+            <button id="upload-toggle-btn" type="button">Upload</button>
+        </div>
+        <div id="upload-section" class="upload-section hidden">
+            <input id="upload-input" type="file" accept=".jsx,.mjs" multiple hidden />
+            <div id="upload-dropzone" class="upload-dropzone" role="button" tabindex="0" aria-label="Upload JSX and MJS files">
+                <span class="upload-title">Drop .jsx and .mjs files</span>
+                <span class="upload-hint">Use one JSX component plus any flat local MJS logic imports.</span>
+            </div>
+            <ul id="upload-file-list" class="upload-file-list"></ul>
+            <div id="upload-error" class="upload-error"></div>
+            <div id="upload-status" class="upload-status">No files selected.</div>
+            <div class="panel-row" style="justify-content: flex-start; gap: 8px;">
+                <button id="upload-submit-btn" type="button" disabled>Upload & Deploy</button>
+                <button id="upload-clear-btn" type="button">Clear</button>
+            </div>
         </div>
         <input type="text" id="share-url" readonly placeholder="Shareable link will appear here" />
     </div>
@@ -303,6 +413,15 @@
         const resetBtn = document.getElementById('reset-btn');
         const shareUrlEl = document.getElementById('share-url');
         const copyLinkBtn = document.getElementById('copy-link-btn');
+        const uploadToggleBtn = document.getElementById('upload-toggle-btn');
+        const uploadSection = document.getElementById('upload-section');
+        const uploadInput = document.getElementById('upload-input');
+        const uploadDropzone = document.getElementById('upload-dropzone');
+        const uploadFileList = document.getElementById('upload-file-list');
+        const uploadErrorEl = document.getElementById('upload-error');
+        const uploadStatusEl = document.getElementById('upload-status');
+        const uploadSubmitBtn = document.getElementById('upload-submit-btn');
+        const uploadClearBtn = document.getElementById('upload-clear-btn');
 
         const topBar = document.getElementById('top-bar');
         const panelToggleBtn = document.getElementById('panel-toggle-btn');
@@ -320,6 +439,7 @@
 
         let currentFile = null;
         let currentComponent = null;
+        let selectedUploadFiles = [];
         let currentDefaultSettings = {};
         let currentInitialSettings = {};
         let currentSettings = {};
@@ -328,6 +448,10 @@
 
         function isPlainObject(value) {
             return value !== null && typeof value === 'object' && !Array.isArray(value);
+        }
+
+        function isSafeUploadFileName(value) {
+            return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*\.(jsx|mjs)$/.test(value);
         }
 
         function deepClone(value) {
@@ -500,6 +624,123 @@
             updateShareUrl();
         }
 
+        function setUploadError(message) {
+            uploadErrorEl.textContent = message || '';
+            uploadErrorEl.classList.toggle('visible', Boolean(message));
+        }
+
+        function renderUploadFileList() {
+            uploadFileList.textContent = '';
+            selectedUploadFiles.forEach((file) => {
+                const item = document.createElement('li');
+                item.textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`;
+                uploadFileList.appendChild(item);
+            });
+        }
+
+        function validateUploadFiles(files) {
+            if (files.length === 0) {
+                return 'Select one .jsx file and optional .mjs files.';
+            }
+            const names = new Set();
+            let jsxCount = 0;
+            for (const file of files) {
+                if (!isSafeUploadFileName(file.name)) {
+                    return `Unsupported or unsafe file name: ${file.name || '(unnamed file)'}`;
+                }
+                if (names.has(file.name)) {
+                    return `Duplicate file name: ${file.name}`;
+                }
+                names.add(file.name);
+                if (file.name.endsWith('.jsx')) {
+                    jsxCount += 1;
+                }
+            }
+            if (jsxCount !== 1) {
+                return 'Select exactly one .jsx file.';
+            }
+            return '';
+        }
+
+        function setSelectedUploadFiles(files) {
+            selectedUploadFiles = Array.from(files || []);
+            const validationError = validateUploadFiles(selectedUploadFiles);
+            renderUploadFileList();
+            setUploadError(validationError);
+            uploadSubmitBtn.disabled = Boolean(validationError);
+            uploadStatusEl.textContent = selectedUploadFiles.length > 0
+                ? `${selectedUploadFiles.length} file(s) ready.`
+                : 'No files selected.';
+        }
+
+        function clearUploadFiles() {
+            selectedUploadFiles = [];
+            uploadInput.value = '';
+            renderUploadFileList();
+            setUploadError('');
+            uploadSubmitBtn.disabled = true;
+            uploadStatusEl.textContent = 'No files selected.';
+        }
+
+        function sleep(ms) {
+            return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        async function pollUploadStatus(statusUrl, fallbackOpenUrl) {
+            const maxAttempts = 60;
+            for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+                const response = await fetch(`${statusUrl}${statusUrl.includes('?') ? '&' : '?'}poll=${attempt}`, {
+                    headers: { accept: 'application/json' }
+                });
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(body.error || `Upload status failed with HTTP ${response.status}`);
+                }
+                if (body.ready) {
+                    uploadStatusEl.textContent = 'Hosted page is ready. Opening...';
+                    window.location.assign(body.openUrl || fallbackOpenUrl);
+                    return;
+                }
+                uploadStatusEl.textContent = body.message || `Waiting for Cloudflare deployment (${attempt}/${maxAttempts})...`;
+                await sleep(5000);
+            }
+            throw new Error('Repo commit succeeded, but Cloudflare did not serve the uploaded page before the timeout.');
+        }
+
+        async function uploadSelectedDeliverable() {
+            const validationError = validateUploadFiles(selectedUploadFiles);
+            if (validationError) {
+                setUploadError(validationError);
+                return;
+            }
+
+            const formData = new FormData();
+            selectedUploadFiles.forEach((file) => {
+                formData.append('files', file, file.name);
+            });
+
+            uploadSubmitBtn.disabled = true;
+            setUploadError('');
+            uploadStatusEl.textContent = 'Uploading files and committing to GitHub...';
+
+            try {
+                const response = await fetch('/api/upload-deliverable', {
+                    method: 'POST',
+                    body: formData
+                });
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(body.error || `Upload failed with HTTP ${response.status}`);
+                }
+                uploadStatusEl.textContent = `Committed ${body.jsxFile}. Waiting for Cloudflare deployment...`;
+                await pollUploadStatus(body.statusUrl, body.openUrl);
+            } catch (err) {
+                setUploadError(err.message || 'Upload failed.');
+                uploadStatusEl.textContent = 'Upload stopped.';
+                uploadSubmitBtn.disabled = false;
+            }
+        }
+
         function syncPageBackgroundToComponent() {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
@@ -641,6 +882,40 @@
                 document.execCommand('copy');
             }
         });
+
+        uploadToggleBtn.addEventListener('click', () => {
+            const willOpen = uploadSection.classList.contains('hidden');
+            uploadSection.classList.toggle('hidden', !willOpen);
+            topBar.classList.toggle('upload-open', willOpen);
+        });
+
+        uploadDropzone.addEventListener('click', () => uploadInput.click());
+        uploadDropzone.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                uploadInput.click();
+            }
+        });
+        uploadInput.addEventListener('change', (event) => {
+            setSelectedUploadFiles(event.target.files);
+        });
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            uploadDropzone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                uploadDropzone.classList.add('drag-over');
+            });
+        });
+        ['dragleave', 'drop'].forEach((eventName) => {
+            uploadDropzone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                uploadDropzone.classList.remove('drag-over');
+            });
+        });
+        uploadDropzone.addEventListener('drop', (event) => {
+            setSelectedUploadFiles(event.dataTransfer.files);
+        });
+        uploadSubmitBtn.addEventListener('click', uploadSelectedDeliverable);
+        uploadClearBtn.addEventListener('click', clearUploadFiles);
 
         window.addEventListener('popstate', () => {
             const { initialFile, initialOverrides } = getStateFromUrl(window.location.href);
