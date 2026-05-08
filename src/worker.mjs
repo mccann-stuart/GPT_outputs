@@ -5,7 +5,8 @@ const MAX_UPLOAD_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_UPLOAD_FILE_BYTES = 512 * 1024;
 const SAFE_DELIVERABLE_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.(jsx|mjs)$/;
 const LOCAL_IMPORT_PATTERN = /\b(?:import\s+[^'"]*?from|export\s+[^'"]*?from|import\s*\()\s*['"](\.[^'"]+)['"]/g;
-const GITHUB_API_VERSION = '2022-11-28';
+const R2_UPLOAD_PREFIX = 'jsxupload/Files/';
+const R2_ROUTE_PREFIX = '/jsxupload/Files/';
 
 class ApiRequestError extends Error {
   constructor(status, message) {
@@ -32,107 +33,33 @@ function isSafeDeliverableFile(value) {
   return typeof value === 'string' && SAFE_DELIVERABLE_FILE.test(value);
 }
 
-function isSafeSha(value) {
-  return typeof value === 'string' && /^[0-9a-f]{7,40}$/i.test(value);
-}
-
-function parseGithubRepo(env) {
-  const repo = env.GITHUB_REPO || 'mccann-stuart/GPT_outputs';
-  const [owner, name] = repo.split('/');
-  if (!owner || !name || repo.split('/').length !== 2) {
-    throw new ApiRequestError(500, 'GITHUB_REPO must be shaped as owner/repo');
+function getUploadBucket(env) {
+  if (!env.JSX_UPLOADS) {
+    throw new ApiRequestError(500, 'JSX_UPLOADS R2 binding is not configured');
   }
-  return { owner, name, repo };
+  return env.JSX_UPLOADS;
 }
 
-function getGithubBranch(env) {
-  return env.GITHUB_BRANCH || 'main';
+function uploadObjectKey(file) {
+  return `${R2_UPLOAD_PREFIX}${file}`;
 }
 
-function getGithubAuthor(env) {
-  if (!env.GITHUB_AUTHOR_NAME && !env.GITHUB_AUTHOR_EMAIL) return undefined;
-  return {
-    name: env.GITHUB_AUTHOR_NAME || 'GPT Outputs Upload',
-    email: env.GITHUB_AUTHOR_EMAIL || 'uploads@gpt-outputs.local',
-  };
+function uploadPublicPath(file) {
+  return `${R2_ROUTE_PREFIX}${encodeURIComponent(file)}`;
 }
 
-function githubHeaders(env) {
-  if (!env.GITHUB_UPLOAD_TOKEN) {
-    throw new ApiRequestError(500, 'GITHUB_UPLOAD_TOKEN is not configured');
-  }
-  return {
-    accept: 'application/vnd.github+json',
-    authorization: `Bearer ${env.GITHUB_UPLOAD_TOKEN}`,
-    'content-type': 'application/json',
-    'user-agent': 'gpt-outputs-cloudflare-upload',
-    'x-github-api-version': GITHUB_API_VERSION,
-  };
+function contentTypeForFile(file) {
+  if (file.endsWith('.mjs')) return 'text/javascript; charset=utf-8';
+  if (file.endsWith('.jsx')) return 'text/jsx; charset=utf-8';
+  return 'application/octet-stream';
 }
 
-async function githubRequest(env, path, init = {}) {
-  const response = await fetch(`https://api.github.com${path}`, {
-    ...init,
-    headers: {
-      ...githubHeaders(env),
-      ...(init.headers || {}),
-    },
-  });
-
-  const text = await response.text();
-  let body = null;
-  if (text) {
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = { message: text };
-    }
-  }
-
-  if (!response.ok) {
-    const detail = body?.message ? `: ${body.message}` : '';
-    throw new ApiRequestError(502, `GitHub API request failed (${response.status})${detail}`);
-  }
-
-  return body;
+function objectVersion(object) {
+  return object?.etag || object?.version || object?.uploaded?.getTime?.().toString() || Date.now().toString(36);
 }
 
-async function githubRequestMaybe404(env, path, init = {}) {
-  try {
-    return await githubRequest(env, path, init);
-  } catch (error) {
-    if (error instanceof ApiRequestError && /GitHub API request failed \(404\)/.test(error.message)) {
-      return null;
-    }
-    throw error;
-  }
-}
-
-function encodePath(path) {
-  return path.split('/').map(encodeURIComponent).join('/');
-}
-
-function parseManifestJson(text) {
-  try {
-    const parsed = JSON.parse(text);
-    if (!Array.isArray(parsed)) {
-      throw new Error('manifest is not an array');
-    }
-    return parsed.filter(isSafeDeliverableFile).sort();
-  } catch {
-    throw new ApiRequestError(502, 'Existing jsx-manifest.json is invalid');
-  }
-}
-
-function toManifestJson(files) {
-  return `${JSON.stringify([...new Set(files)].sort(), null, 2)}\n`;
-}
-
-function decodeBase64Content(value) {
-  const normalized = String(value || '').replace(/\s/g, '');
-  const binary = atob(normalized);
-  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
+function openUrlForUploadedJsx(file, version) {
+  return `/?file=${encodeURIComponent(file)}&source=r2&version=${encodeURIComponent(version)}`;
 }
 
 function normalizeLocalImport(specifier) {
@@ -221,108 +148,90 @@ async function readUploadFiles(request) {
   return { uploads, jsxFile: jsxFiles[0].name };
 }
 
-async function createGithubUploadCommit(env, uploads, jsxFile) {
-  const { owner, name } = parseGithubRepo(env);
-  const branch = getGithubBranch(env);
-  const refPath = encodeURIComponent(`heads/${branch}`);
-  const ref = await githubRequest(env, `/repos/${owner}/${name}/git/ref/${refPath}`);
-  const headSha = ref?.object?.sha;
-  if (!headSha) {
-    throw new ApiRequestError(502, 'GitHub branch ref did not include a commit SHA');
-  }
-
-  const headCommit = await githubRequest(env, `/repos/${owner}/${name}/git/commits/${headSha}`);
-  const baseTree = headCommit?.tree?.sha;
-  if (!baseTree) {
-    throw new ApiRequestError(502, 'GitHub commit did not include a tree SHA');
-  }
-
-  const manifest = await githubRequestMaybe404(
-    env,
-    `/repos/${owner}/${name}/contents/${encodePath('jsx-manifest.json')}?ref=${encodeURIComponent(branch)}`,
-  );
-  const existingManifest = manifest?.content ? parseManifestJson(decodeBase64Content(manifest.content)) : [];
-  const manifestJson = toManifestJson([...existingManifest, jsxFile]);
-
-  const tree = [];
+async function storeUploadedFiles(env, uploads) {
+  const bucket = getUploadBucket(env);
+  const storedFiles = [];
   for (const upload of uploads) {
-    const blob = await githubRequest(env, `/repos/${owner}/${name}/git/blobs`, {
-      method: 'POST',
-      body: JSON.stringify({
-        content: upload.text,
-        encoding: 'utf-8',
-      }),
+    const key = uploadObjectKey(upload.name);
+    const object = await bucket.put(key, upload.text, {
+      httpMetadata: {
+        contentType: contentTypeForFile(upload.name),
+        cacheControl: 'no-cache',
+      },
+      customMetadata: {
+        uploadedBy: 'gpt-outputs-viewer',
+      },
     });
-    tree.push({
-      path: upload.name,
-      mode: '100644',
-      type: 'blob',
-      sha: blob.sha,
+    storedFiles.push({
+      file: upload.name,
+      key,
+      version: objectVersion(object),
     });
   }
+  return storedFiles;
+}
 
-  const manifestBlob = await githubRequest(env, `/repos/${owner}/${name}/git/blobs`, {
-    method: 'POST',
-    body: JSON.stringify({
-      content: manifestJson,
-      encoding: 'utf-8',
-    }),
-  });
-  tree.push({
-    path: 'jsx-manifest.json',
-    mode: '100644',
-    type: 'blob',
-    sha: manifestBlob.sha,
-  });
+async function listUploadedJsxFiles(env) {
+  const bucket = getUploadBucket(env);
+  const files = new Set();
+  let cursor;
+  do {
+    const result = await bucket.list({
+      prefix: R2_UPLOAD_PREFIX,
+      cursor,
+    });
+    for (const object of result.objects || []) {
+      const file = object.key?.slice(R2_UPLOAD_PREFIX.length);
+      if (isSafeDeliverableFile(file) && file.endsWith('.jsx')) {
+        files.add(file);
+      }
+    }
+    cursor = result.truncated ? result.cursor : undefined;
+  } while (cursor);
+  return [...files].sort();
+}
 
-  const newTree = await githubRequest(env, `/repos/${owner}/${name}/git/trees`, {
-    method: 'POST',
-    body: JSON.stringify({
-      base_tree: baseTree,
-      tree,
-    }),
-  });
+function fileFromR2Route(pathname) {
+  if (!pathname.startsWith(R2_ROUTE_PREFIX)) {
+    return null;
+  }
+  const encodedFile = pathname.slice(R2_ROUTE_PREFIX.length);
+  let file;
+  try {
+    file = decodeURIComponent(encodedFile);
+  } catch {
+    throw new ApiRequestError(400, 'Uploaded file path is invalid');
+  }
+  if (!isSafeDeliverableFile(file)) {
+    throw new ApiRequestError(400, 'Uploaded file path must be a safe .jsx or .mjs file name');
+  }
+  return file;
+}
 
-  const commitBody = {
-    message: `Add uploaded deliverable ${jsxFile}`,
-    tree: newTree.sha,
-    parents: [headSha],
-  };
-  const author = getGithubAuthor(env);
-  if (author) {
-    commitBody.author = author;
-    commitBody.committer = author;
+async function serveUploadedFile(request, env) {
+  const url = new URL(request.url);
+  const file = fileFromR2Route(url.pathname);
+  if (!file) return null;
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return errorResponse(405, 'Method not allowed');
   }
 
-  const commit = await githubRequest(env, `/repos/${owner}/${name}/git/commits`, {
-    method: 'POST',
-    body: JSON.stringify(commitBody),
+  const object = await getUploadBucket(env).get(uploadObjectKey(file));
+  if (!object) {
+    return errorResponse(404, 'Uploaded file not found');
+  }
+
+  const headers = new Headers({
+    'content-type': contentTypeForFile(file),
+    'cache-control': 'no-cache',
   });
-
-  await githubRequest(env, `/repos/${owner}/${name}/git/refs/${refPath}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      sha: commit.sha,
-      force: false,
-    }),
-  });
-
-  return commit.sha;
-}
-
-function cacheBustedUrl(requestUrl, file, sha) {
-  const origin = new URL(requestUrl).origin;
-  const url = new URL(`/${file}`, origin);
-  url.searchParams.set('deploy', sha);
-  url.searchParams.set('t', Date.now().toString(36));
-  return url;
-}
-
-async function checkHostedFile(requestUrl, file, sha) {
-  const response = await fetch(cacheBustedUrl(requestUrl, file, sha), {
-    headers: { accept: 'text/plain,*/*' },
-  });
-  return response.ok;
+  if (object.httpEtag) {
+    headers.set('etag', object.httpEtag);
+  }
+  if (typeof object.writeHttpMetadata === 'function') {
+    object.writeHttpMetadata(headers);
+  }
+  return new Response(request.method === 'HEAD' ? null : object.body, { headers });
 }
 
 async function handleUploadDeliverable(request, env) {
@@ -331,59 +240,24 @@ async function handleUploadDeliverable(request, env) {
   }
 
   const { uploads, jsxFile } = await readUploadFiles(request);
-  const commitSha = await createGithubUploadCommit(env, uploads, jsxFile);
-  const openUrl = `/?file=${encodeURIComponent(jsxFile)}&deploy=${encodeURIComponent(commitSha)}`;
-  const statusUrl = `/api/upload-status?file=${encodeURIComponent(jsxFile)}&sha=${encodeURIComponent(commitSha)}`;
+  const storedFiles = await storeUploadedFiles(env, uploads);
+  const jsxObject = storedFiles.find((file) => file.file === jsxFile);
+  const version = jsxObject?.version || Date.now().toString(36);
+  const openUrl = openUrlForUploadedJsx(jsxFile, version);
 
   return json({
     jsxFile,
-    commitSha,
-    statusUrl,
+    storedFiles,
+    version,
     openUrl,
   });
 }
 
-async function handleUploadStatus(request) {
+async function handleUploadManifest(request, env) {
   if (request.method !== 'GET') {
     return errorResponse(405, 'Method not allowed');
   }
-
-  const url = new URL(request.url);
-  const file = url.searchParams.get('file') || '';
-  const sha = url.searchParams.get('sha') || '';
-  if (!isSafeDeliverableFile(file) || !file.endsWith('.jsx')) {
-    throw new ApiRequestError(400, 'Upload status requires a safe .jsx file name');
-  }
-  if (!isSafeSha(sha)) {
-    throw new ApiRequestError(400, 'Upload status requires a commit SHA');
-  }
-
-  const jsxReady = await checkHostedFile(request.url, file, sha);
-  if (!jsxReady) {
-    return json({
-      ready: false,
-      message: 'Repo commit succeeded, waiting for Cloudflare to serve the uploaded JSX.',
-    });
-  }
-
-  const jsxResponse = await fetch(cacheBustedUrl(request.url, file, sha));
-  const jsxText = await jsxResponse.text();
-  const requiredImports = findRequiredMjsImports(jsxText);
-  for (const importedFile of requiredImports) {
-    const mjsReady = await checkHostedFile(request.url, importedFile, sha);
-    if (!mjsReady) {
-      return json({
-        ready: false,
-        message: `Repo commit succeeded, waiting for Cloudflare to serve ${importedFile}.`,
-      });
-    }
-  }
-
-  return json({
-    ready: true,
-    message: 'Uploaded deliverable is hosted on this site.',
-    openUrl: `/?file=${encodeURIComponent(file)}&deploy=${encodeURIComponent(sha)}`,
-  });
+  return json({ files: await listUploadedJsxFiles(env) });
 }
 
 async function readJsonPayload(request) {
@@ -415,12 +289,17 @@ export default {
     const url = new URL(request.url);
 
     try {
+      const uploadedFileResponse = await serveUploadedFile(request, env);
+      if (uploadedFileResponse) {
+        return uploadedFileResponse;
+      }
+
       if (url.pathname === '/api/upload-deliverable') {
         return await handleUploadDeliverable(request, env);
       }
 
-      if (url.pathname === '/api/upload-status') {
-        return await handleUploadStatus(request);
+      if (url.pathname === '/api/upload-manifest') {
+        return await handleUploadManifest(request, env);
       }
     } catch (error) {
       if (error instanceof ApiRequestError) {

@@ -20,11 +20,7 @@ function makeEnv() {
 function makeUploadEnv() {
   return {
     ...makeEnv(),
-    GITHUB_UPLOAD_TOKEN: 'test-token',
-    GITHUB_REPO: 'mccann-stuart/GPT_outputs',
-    GITHUB_BRANCH: 'main',
-    GITHUB_AUTHOR_NAME: 'Upload Bot',
-    GITHUB_AUTHOR_EMAIL: 'upload@example.com',
+    JSX_UPLOADS: makeR2Bucket(),
   };
 }
 
@@ -39,51 +35,52 @@ function makeUploadRequest(files) {
   });
 }
 
-function manifestContent(files) {
-  return btoa(JSON.stringify(files, null, 2));
+function makeR2Object(key, value, options = {}, etag = `"etag-${key}"`) {
+  return {
+    key,
+    etag,
+    httpEtag: etag,
+    uploaded: new Date('2026-05-08T00:00:00.000Z'),
+    body: value,
+    httpMetadata: options.httpMetadata || {},
+    writeHttpMetadata(headers) {
+      if (this.httpMetadata.contentType) {
+        headers.set('content-type', this.httpMetadata.contentType);
+      }
+      if (this.httpMetadata.cacheControl) {
+        headers.set('cache-control', this.httpMetadata.cacheControl);
+      }
+    },
+  };
 }
 
-function installGithubMock({ failRef = false } = {}) {
-  const calls = [];
-  const blobs = new Map();
-  globalThis.fetch = async (url, init = {}) => {
-    const parsed = new URL(url);
-    const bodyText = init.body ? String(init.body) : '';
-    const body = bodyText ? JSON.parse(bodyText) : null;
-    calls.push({ method: init.method || 'GET', pathname: parsed.pathname, body });
-
-    if (parsed.hostname !== 'api.github.com') {
-      return new Response('not found', { status: 404 });
-    }
-    if (failRef && parsed.pathname.includes('/git/ref/')) {
-      return Response.json({ message: 'Bad credentials' }, { status: 401 });
-    }
-    if (parsed.pathname.includes('/git/ref/')) {
-      return Response.json({ object: { sha: 'base-commit-sha' } });
-    }
-    if (parsed.pathname.endsWith('/git/commits/base-commit-sha')) {
-      return Response.json({ tree: { sha: 'base-tree-sha' } });
-    }
-    if (parsed.pathname.endsWith('/contents/jsx-manifest.json')) {
-      return Response.json({ content: manifestContent(['simulate.jsx']) });
-    }
-    if (parsed.pathname.endsWith('/git/blobs')) {
-      const sha = `blob-${blobs.size + 1}`;
-      blobs.set(sha, body.content);
-      return Response.json({ sha });
-    }
-    if (parsed.pathname.endsWith('/git/trees')) {
-      return Response.json({ sha: 'new-tree-sha' });
-    }
-    if (parsed.pathname.endsWith('/git/commits')) {
-      return Response.json({ sha: 'abcdef1234567890abcdef1234567890abcdef12' });
-    }
-    if (parsed.pathname.includes('/git/refs/')) {
-      return Response.json({ object: { sha: body.sha } });
-    }
-    return Response.json({ message: `Unhandled ${parsed.pathname}` }, { status: 500 });
+function makeR2Bucket(initialObjects = {}) {
+  const objects = new Map();
+  for (const [key, value] of Object.entries(initialObjects)) {
+    objects.set(key, makeR2Object(key, value));
+  }
+  return {
+    objects,
+    puts: [],
+    async put(key, value, options = {}) {
+      const object = makeR2Object(key, value, options, `"etag-${this.puts.length + 1}"`);
+      this.objects.set(key, object);
+      this.puts.push({ key, value, options });
+      return object;
+    },
+    async get(key) {
+      return this.objects.get(key) || null;
+    },
+    async list({ prefix = '' } = {}) {
+      const listedObjects = [...this.objects.values()]
+        .filter((object) => object.key.startsWith(prefix))
+        .map((object) => ({ key: object.key, etag: object.etag, uploaded: object.uploaded }));
+      return {
+        objects: listedObjects,
+        truncated: false,
+      };
+    },
   };
-  return { calls, blobs };
 }
 
 const validPayload = {
@@ -208,8 +205,8 @@ test('worker falls back to static assets for non-api routes', async () => {
   assert.equal(await response.text(), 'asset fallback');
 });
 
-test('worker uploads one JSX deliverable plus MJS logic through one GitHub commit', async () => {
-  const github = installGithubMock();
+test('worker uploads one JSX deliverable plus MJS logic to R2', async () => {
+  const env = makeUploadEnv();
   const request = makeUploadRequest([
     {
       name: 'example.jsx',
@@ -221,23 +218,22 @@ test('worker uploads one JSX deliverable plus MJS logic through one GitHub commi
     },
   ]);
 
-  const response = await worker.fetch(request, makeUploadEnv(), {});
+  const response = await worker.fetch(request, env, {});
   const body = await response.json();
 
   assert.equal(response.status, 200);
   assert.equal(body.jsxFile, 'example.jsx');
-  assert.equal(body.commitSha, 'abcdef1234567890abcdef1234567890abcdef12');
-  assert.equal(body.statusUrl, '/api/upload-status?file=example.jsx&sha=abcdef1234567890abcdef1234567890abcdef12');
-  assert.equal(body.openUrl, '/?file=example.jsx&deploy=abcdef1234567890abcdef1234567890abcdef12');
-
-  const treeCall = github.calls.find((call) => call.pathname.endsWith('/git/trees'));
-  assert.deepEqual(treeCall.body.tree.map((entry) => entry.path).sort(), [
-    'example-logic.mjs',
-    'example.jsx',
-    'jsx-manifest.json',
+  assert.equal(body.version, '"etag-1"');
+  assert.equal(body.openUrl, '/?file=example.jsx&source=r2&version=%22etag-1%22');
+  assert.deepEqual(body.storedFiles.map((file) => file.key).sort(), [
+    'jsxupload/Files/example-logic.mjs',
+    'jsxupload/Files/example.jsx',
   ]);
-  const manifestBlob = Array.from(github.blobs.values()).find((content) => content.includes('jsx-manifest.json') === false && content.includes('example.jsx') && content.includes('simulate.jsx'));
-  assert.ok(manifestBlob);
+  assert.deepEqual(env.JSX_UPLOADS.puts.map((put) => put.key).sort(), [
+    'jsxupload/Files/example-logic.mjs',
+    'jsxupload/Files/example.jsx',
+  ]);
+  assert.equal(env.JSX_UPLOADS.puts[0].options.httpMetadata.cacheControl, 'no-cache');
 });
 
 test('worker rejects upload file names that are unsafe or unsupported', async () => {
@@ -289,37 +285,64 @@ test('worker rejects oversized uploaded files', async () => {
   assert.match(body.error, /bytes or less/i);
 });
 
-test('worker reports GitHub API failures without exposing credentials', async () => {
-  installGithubMock({ failRef: true });
+test('worker reports missing R2 binding for upload requests', async () => {
   const request = makeUploadRequest([
     { name: 'example.jsx', text: 'export default function Example() { return null; }' },
   ]);
 
-  const response = await worker.fetch(request, makeUploadEnv(), {});
-  const body = await response.json();
-
-  assert.equal(response.status, 502);
-  assert.match(body.error, /GitHub API request failed \(401\): Bad credentials/);
-  assert.doesNotMatch(body.error, /test-token/);
-});
-
-test('worker upload status waits until hosted JSX and MJS imports are reachable', async () => {
-  globalThis.fetch = async (url) => {
-    const parsed = new URL(url);
-    if (parsed.pathname === '/example.jsx') {
-      return new Response('import { value } from "./example-logic.mjs";\nexport default function Example() { return value; }');
-    }
-    if (parsed.pathname === '/example-logic.mjs') {
-      return new Response('export const value = "ok";');
-    }
-    return new Response('not found', { status: 404 });
-  };
-
-  const request = new Request('https://example.com/api/upload-status?file=example.jsx&sha=abcdef1234567890abcdef1234567890abcdef12');
   const response = await worker.fetch(request, makeEnv(), {});
   const body = await response.json();
 
+  assert.equal(response.status, 500);
+  assert.match(body.error, /JSX_UPLOADS R2 binding/i);
+});
+
+test('worker upload manifest lists only safe R2 JSX files', async () => {
+  const env = {
+    ...makeEnv(),
+    JSX_UPLOADS: makeR2Bucket({
+      'jsxupload/Files/example.jsx': 'export default function Example() { return null; }',
+      'jsxupload/Files/example.mjs': 'export const value = true;',
+      'jsxupload/Files/other.jsx': 'export default function Other() { return null; }',
+      'jsxupload/Files/nested/bad.jsx': 'export default function Bad() { return null; }',
+      'elsewhere/ignored.jsx': 'export default function Ignored() { return null; }',
+    }),
+  };
+
+  const request = new Request('https://example.com/api/upload-manifest');
+  const response = await worker.fetch(request, env, {});
+  const body = await response.json();
+
   assert.equal(response.status, 200);
-  assert.equal(body.ready, true);
-  assert.equal(body.openUrl, '/?file=example.jsx&deploy=abcdef1234567890abcdef1234567890abcdef12');
+  assert.deepEqual(body.files, ['example.jsx', 'other.jsx']);
+});
+
+test('worker serves uploaded JSX and MJS from R2', async () => {
+  const env = {
+    ...makeEnv(),
+    JSX_UPLOADS: makeR2Bucket({
+      'jsxupload/Files/example.jsx': 'export default function Example() { return null; }',
+      'jsxupload/Files/example-logic.mjs': 'export const value = "ok";',
+    }),
+  };
+
+  const jsxResponse = await worker.fetch(new Request('https://example.com/jsxupload/Files/example.jsx'), env, {});
+  const mjsResponse = await worker.fetch(new Request('https://example.com/jsxupload/Files/example-logic.mjs'), env, {});
+
+  assert.equal(jsxResponse.status, 200);
+  assert.equal(jsxResponse.headers.get('content-type'), 'text/jsx; charset=utf-8');
+  assert.match(await jsxResponse.text(), /export default function Example/);
+  assert.equal(mjsResponse.status, 200);
+  assert.equal(mjsResponse.headers.get('content-type'), 'text/javascript; charset=utf-8');
+  assert.match(await mjsResponse.text(), /export const value/);
+});
+
+test('worker returns 404 for missing R2 uploaded files', async () => {
+  const env = makeUploadEnv();
+  const request = new Request('https://example.com/jsxupload/Files/missing.jsx');
+  const response = await worker.fetch(request, env, {});
+  const body = await response.json();
+
+  assert.equal(response.status, 404);
+  assert.match(body.error, /not found/i);
 });

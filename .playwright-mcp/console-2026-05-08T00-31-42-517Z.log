@@ -1,0 +1,3 @@
+[     625ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:8790/api/upload-manifest:0
+[     625ms] [WARNING] Failed to load uploaded manifest: 404 File not found @ http://127.0.0.1:8790/:398
+[     628ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:8790/favicon.ico:0

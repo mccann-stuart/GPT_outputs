@@ -9,16 +9,16 @@
   "observability": {
     "enabled": true
   },
-  "vars": {
-    "GITHUB_REPO": "mccann-stuart/GPT_outputs",
-    "GITHUB_BRANCH": "main",
-    "GITHUB_AUTHOR_NAME": "GPT Outputs Upload",
-    "GITHUB_AUTHOR_EMAIL": "uploads@gpt-outputs.local"
-  },
+  "r2_buckets": [
+    {
+      "binding": "JSX_UPLOADS",
+      "bucket_name": "jsxupload"
+    }
+  ],
   "assets": {
     "directory": "public",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/jsxupload/Files/*"]
   },
   "compatibility_flags": [
     "nodejs_compat"
