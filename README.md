@@ -1,8 +1,5 @@
 # GPT_outputs
-
-Deliverables as code.
-
-This project renders consulting deliverables as webpages, with JSX and `.mjs` files capturing the underlying logic.
+Deliverables as code. This project renders consulting deliverables as webpages, with JSX and `.mjs` files capturing the underlying logic.
 
 ## Viewer routing
 - `index.html` automatically redirects iPhone browsers to `iphone.html` while preserving query parameters and hash.
