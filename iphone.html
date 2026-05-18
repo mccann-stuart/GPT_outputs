@@ -8,19 +8,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>JSX Viewer - Mobile</title>
-    <!-- Import map for React -->
+    <!-- Import map for supported local browser modules -->
     <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "recharts": "https://esm.sh/recharts?external=react,react-dom"
-      }
-    }
+{
+  "imports": {
+    "react": "/vendor/react.mjs",
+    "react/jsx-runtime": "/vendor/react-jsx-runtime.mjs",
+    "react-dom/client": "/vendor/react-dom-client.mjs",
+    "recharts": "/vendor/recharts.mjs",
+    "lucide-react": "/vendor/lucide-react.mjs"
+  }
+}
     </script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="/vendor/babel.min.js"></script>
     <style>
         :root {
             --viewer-bg: #f2f2f7;

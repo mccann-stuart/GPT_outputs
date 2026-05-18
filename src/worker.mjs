@@ -1,4 +1,5 @@
 import { buildSimulationViewModel, computePreview } from '../server/simulate-engine.mjs';
+import { assertSupportedJsxImports } from '../jsx-import-validator.mjs';
 
 const MAX_JSON_BODY_BYTES = 4096;
 const MAX_UPLOAD_BODY_BYTES = 2 * 1024 * 1024;
@@ -136,9 +137,16 @@ async function readUploadFiles(request) {
   if (jsxFiles.length !== 1) {
     throw new ApiRequestError(400, 'Upload must include exactly one .jsx file');
   }
+  const jsxFile = jsxFiles[0];
+
+  try {
+    assertSupportedJsxImports(jsxFile.text, { file: jsxFile.name });
+  } catch (error) {
+    throw new ApiRequestError(400, error instanceof Error ? error.message : 'Uploaded JSX contains unsupported imports');
+  }
 
   const uploadedNames = new Set(uploads.map((file) => file.name));
-  const requiredImports = findRequiredMjsImports(jsxFiles[0].text);
+  const requiredImports = findRequiredMjsImports(jsxFile.text);
   for (const importedFile of requiredImports) {
     if (!uploadedNames.has(importedFile)) {
       throw new ApiRequestError(400, `Uploaded JSX imports missing file: ${importedFile}`);

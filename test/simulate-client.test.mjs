@@ -1,7 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { loadSimulateModule } from './load-simulate-jsx.mjs';
+
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+const hasSimulateSource = existsSync(join(rootDir, 'simulate.jsx'));
 
 class MockClassList {
   constructor(element) {
@@ -477,7 +484,9 @@ function setupEnvironment() {
   };
 }
 
-test('simulate.jsx preserves the browser adapter flows with server-side view-model responses', async () => {
+test('simulate.jsx preserves the browser adapter flows with server-side view-model responses', {
+  skip: hasSimulateSource ? false : 'simulate.jsx is not present in this checkout',
+}, async () => {
   const env = setupEnvironment();
   const previous = {};
 

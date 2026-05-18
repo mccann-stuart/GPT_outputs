@@ -236,6 +236,41 @@ test('worker uploads one JSX deliverable plus MJS logic to R2', async () => {
   assert.equal(env.JSX_UPLOADS.puts[0].options.httpMetadata.cacheControl, 'no-cache');
 });
 
+test('worker accepts uploaded JSX with supported lucide-react imports', async () => {
+  const env = makeUploadEnv();
+  const request = makeUploadRequest([
+    {
+      name: 'lucide-example.jsx',
+      text: 'import React from "react";\nimport { BadgeCheck } from "lucide-react";\nexport default function Example() { return React.createElement(BadgeCheck); }\n',
+    },
+  ]);
+
+  const response = await worker.fetch(request, env, {});
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.jsxFile, 'lucide-example.jsx');
+  assert.deepEqual(env.JSX_UPLOADS.puts.map((put) => put.key), ['jsxupload/Files/lucide-example.jsx']);
+});
+
+test('worker rejects uploaded JSX with unsupported bare imports before storing files', async () => {
+  const env = makeUploadEnv();
+  const request = makeUploadRequest([
+    {
+      name: 'bad-import.jsx',
+      text: 'import value from "unsupported-package";\nexport default function Bad() { return value; }\n',
+    },
+  ]);
+
+  const response = await worker.fetch(request, env, {});
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.match(body.error, /unsupported bare import.*unsupported-package/i);
+  assert.match(body.error, /Supported modules:.*lucide-react/s);
+  assert.equal(env.JSX_UPLOADS.puts.length, 0);
+});
+
 test('worker rejects upload file names that are unsafe or unsupported', async () => {
   const request = makeUploadRequest([
     { name: '../bad.jsx', text: 'export default function Bad() { return null; }' },
