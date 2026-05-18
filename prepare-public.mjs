@@ -118,6 +118,7 @@ async function vendorBrowserModules() {
   }
 
   copyFileSync(require.resolve('@babel/standalone/babel.min.js'), join(vendorDir, 'babel.min.js'));
+  copyFileSync(require.resolve('@babel/standalone/babel.min.js.map'), join(vendorDir, 'babel.min.js.map'));
 }
 
 for (const file of ['index.html', 'iphone.html']) {
@@ -173,4 +174,4 @@ while (queue.length > 0) {
 
 await vendorBrowserModules();
 
-console.log(`public/ ready with ${seen.size + 3 + SUPPORTED_BROWSER_MODULES.length + 1} assets`);
+console.log(`public/ ready with ${seen.size + 3 + SUPPORTED_BROWSER_MODULES.length + 2} assets`);
