@@ -72,6 +72,145 @@ import client from 'react-dom/client';
 export default client;
 export const { createRoot, hydrateRoot } = client;
 `],
+  ['lodash', `
+import lodash from 'lodash';
+export default lodash;
+export const {
+  camelCase,
+  capitalize,
+  chunk,
+  clamp,
+  cloneDeep,
+  debounce,
+  difference,
+  flatten,
+  get,
+  groupBy,
+  isEqual,
+  keyBy,
+  map,
+  merge,
+  orderBy,
+  pick,
+  range,
+  set,
+  sortBy,
+  startCase,
+  throttle,
+  uniq,
+  uniqBy,
+} = lodash;
+`],
+  ['papaparse', `
+import Papa from 'papaparse';
+export default Papa;
+export const { parse, unparse } = Papa;
+`],
+  ['chart.js', `
+import { Chart, registerables } from 'chart.js';
+export * from 'chart.js';
+Chart.register(...registerables);
+export default Chart;
+`],
+  ['mammoth', `
+import mammoth from 'mammoth';
+export default mammoth;
+export const {
+  convert,
+  convertToHtml,
+  convertToMarkdown,
+  embedStyleMap,
+  extractRawText,
+  images,
+  transforms,
+} = mammoth;
+`],
+  ['shadcn/ui', `
+import React from 'react';
+
+function mergeClassNames(...values) {
+  return values.flatMap((value) => {
+    if (!value) return [];
+    if (typeof value === 'string') return [value];
+    if (Array.isArray(value)) return mergeClassNames(...value);
+    if (typeof value === 'object') {
+      return Object.entries(value)
+        .filter(([, enabled]) => Boolean(enabled))
+        .map(([className]) => className);
+    }
+    return [];
+  }).join(' ');
+}
+
+export const cn = mergeClassNames;
+
+export function Button({ className, variant = 'default', ...props }) {
+  const variants = {
+    default: 'bg-zinc-900 text-white',
+    secondary: 'bg-zinc-100 text-zinc-900',
+    outline: 'border border-zinc-200 bg-white text-zinc-900',
+    ghost: 'bg-transparent text-zinc-900',
+  };
+  return React.createElement('button', {
+    ...props,
+    className: cn(
+      'inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors',
+      variants[variant] || variants.default,
+      className,
+    ),
+  });
+}
+
+export function Badge({ className, variant = 'default', ...props }) {
+  const variants = {
+    default: 'bg-zinc-900 text-white',
+    secondary: 'bg-zinc-100 text-zinc-900',
+    outline: 'border border-zinc-200 text-zinc-900',
+  };
+  return React.createElement('span', {
+    ...props,
+    className: cn('inline-flex items-center rounded-full px-2 py-1 text-xs font-medium', variants[variant] || variants.default, className),
+  });
+}
+
+export function Card({ className, ...props }) {
+  return React.createElement('section', {
+    ...props,
+    className: cn('rounded-lg border border-zinc-200 bg-white text-zinc-900 shadow-sm', className),
+  });
+}
+
+export function CardHeader({ className, ...props }) {
+  return React.createElement('div', { ...props, className: cn('flex flex-col gap-1.5 p-6', className) });
+}
+
+export function CardTitle({ className, ...props }) {
+  return React.createElement('h3', { ...props, className: cn('text-lg font-semibold leading-tight', className) });
+}
+
+export function CardDescription({ className, ...props }) {
+  return React.createElement('p', { ...props, className: cn('text-sm text-zinc-500', className) });
+}
+
+export function CardContent({ className, ...props }) {
+  return React.createElement('div', { ...props, className: cn('p-6 pt-0', className) });
+}
+
+export function CardFooter({ className, ...props }) {
+  return React.createElement('div', { ...props, className: cn('flex items-center p-6 pt-0', className) });
+}
+
+export function Input({ className, ...props }) {
+  return React.createElement('input', {
+    ...props,
+    className: cn('flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm', className),
+  });
+}
+
+export function Label({ className, ...props }) {
+  return React.createElement('label', { ...props, className: cn('text-sm font-medium leading-tight', className) });
+}
+`],
 ]);
 
 function vendorEntryPointFor(module) {

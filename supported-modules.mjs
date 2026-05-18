@@ -24,6 +24,46 @@ export const SUPPORTED_BROWSER_MODULES = Object.freeze([
     vendorFile: 'lucide-react.mjs',
     bundleExternal: ['react'],
   },
+  {
+    specifier: 'lodash',
+    vendorFile: 'lodash.mjs',
+    bundleExternal: [],
+  },
+  {
+    specifier: 'd3',
+    vendorFile: 'd3.mjs',
+    bundleExternal: [],
+  },
+  {
+    specifier: 'papaparse',
+    vendorFile: 'papaparse.mjs',
+    bundleExternal: [],
+  },
+  {
+    specifier: 'mathjs',
+    vendorFile: 'mathjs.mjs',
+    bundleExternal: [],
+  },
+  {
+    specifier: 'chart.js',
+    vendorFile: 'chart-js.mjs',
+    bundleExternal: [],
+  },
+  {
+    specifier: 'tone',
+    vendorFile: 'tone.mjs',
+    bundleExternal: [],
+  },
+  {
+    specifier: 'mammoth',
+    vendorFile: 'mammoth.mjs',
+    bundleExternal: [],
+  },
+  {
+    specifier: 'shadcn/ui',
+    vendorFile: 'shadcn-ui.mjs',
+    bundleExternal: ['react'],
+  },
 ]);
 
 export const SUPPORTED_BROWSER_MODULE_SPECIFIERS = Object.freeze(

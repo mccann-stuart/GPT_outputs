@@ -42,6 +42,14 @@ test('JSX import validator accepts supported bare modules and relative imports',
     import { createRoot } from 'react-dom/client';
     import { LineChart } from 'recharts';
     import { BadgeCheck } from 'lucide-react';
+    import _ from 'lodash';
+    import * as d3 from 'd3';
+    import Papa from 'papaparse';
+    import { evaluate } from 'mathjs';
+    import Chart from 'chart.js';
+    import * as Tone from 'tone';
+    import mammoth from 'mammoth';
+    import { Button } from 'shadcn/ui';
     import { value } from './logic.mjs';
     export default function Fixture() {
       return React.createElement(BadgeCheck, { size: 16 });
@@ -56,6 +64,6 @@ test('JSX import validator rejects unsupported bare imports with a clear message
       export { other } from '@scope/other';
       import('./local.mjs');
     `, { file: 'bad.jsx' }),
-    /bad\.jsx uses unsupported bare imports: @scope\/other, unsupported-package.*Supported modules:.*lucide-react/s,
+    /bad\.jsx uses unsupported bare imports: @scope\/other, unsupported-package.*Supported modules:.*shadcn\/ui/s,
   );
 });

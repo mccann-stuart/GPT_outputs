@@ -236,12 +236,24 @@ test('worker uploads one JSX deliverable plus MJS logic to R2', async () => {
   assert.equal(env.JSX_UPLOADS.puts[0].options.httpMetadata.cacheControl, 'no-cache');
 });
 
-test('worker accepts uploaded JSX with supported lucide-react imports', async () => {
+test('worker accepts uploaded JSX with supported browser module imports', async () => {
   const env = makeUploadEnv();
   const request = makeUploadRequest([
     {
-      name: 'lucide-example.jsx',
-      text: 'import React from "react";\nimport { BadgeCheck } from "lucide-react";\nexport default function Example() { return React.createElement(BadgeCheck); }\n',
+      name: 'supported-modules-example.jsx',
+      text: [
+        'import React from "react";',
+        'import { BadgeCheck } from "lucide-react";',
+        'import _ from "lodash";',
+        'import * as d3 from "d3";',
+        'import Papa from "papaparse";',
+        'import { evaluate } from "mathjs";',
+        'import Chart from "chart.js";',
+        'import * as Tone from "tone";',
+        'import mammoth from "mammoth";',
+        'import { Button } from "shadcn/ui";',
+        'export default function Example() { return React.createElement(Button, null, _.startCase("ok")); }',
+      ].join('\n'),
     },
   ]);
 
@@ -249,8 +261,8 @@ test('worker accepts uploaded JSX with supported lucide-react imports', async ()
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(body.jsxFile, 'lucide-example.jsx');
-  assert.deepEqual(env.JSX_UPLOADS.puts.map((put) => put.key), ['jsxupload/Files/lucide-example.jsx']);
+  assert.equal(body.jsxFile, 'supported-modules-example.jsx');
+  assert.deepEqual(env.JSX_UPLOADS.puts.map((put) => put.key), ['jsxupload/Files/supported-modules-example.jsx']);
 });
 
 test('worker rejects uploaded JSX with unsupported bare imports before storing files', async () => {
@@ -267,7 +279,7 @@ test('worker rejects uploaded JSX with unsupported bare imports before storing f
 
   assert.equal(response.status, 400);
   assert.match(body.error, /unsupported bare import.*unsupported-package/i);
-  assert.match(body.error, /Supported modules:.*lucide-react/s);
+  assert.match(body.error, /Supported modules:.*shadcn\/ui/s);
   assert.equal(env.JSX_UPLOADS.puts.length, 0);
 });
 
