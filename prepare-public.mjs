@@ -119,6 +119,9 @@ async function vendorBrowserModules() {
 
   copyFileSync(require.resolve('@babel/standalone/babel.min.js'), join(vendorDir, 'babel.min.js'));
   copyFileSync(require.resolve('@babel/standalone/babel.min.js.map'), join(vendorDir, 'babel.min.js.map'));
+
+  // Copy the Tailwind-compatible utility stylesheet for uploaded JSX components
+  copyFileSync(join(root, 'vendor', 'uploaded-jsx-utilities.css'), join(vendorDir, 'uploaded-jsx-utilities.css'));
 }
 
 for (const file of ['index.html', 'iphone.html']) {
