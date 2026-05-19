@@ -102,7 +102,8 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
-            width: max-content;
+            box-sizing: border-box;
+            width: 360px;
             max-width: calc(100vw - 48px);
         }
 
@@ -152,6 +153,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            min-width: 0;
+        }
+
+        .panel-row label {
+            flex: 0 0 auto;
+            white-space: nowrap;
         }
 
         .upload-section {
@@ -234,11 +241,21 @@
 
         #top-bar select,
         #top-bar input {
+            box-sizing: border-box;
             padding: 8px 12px;
             border: 1px solid rgba(0, 0, 0, 0.15);
             border-radius: 6px;
             font-size: 14px;
             background: rgba(255, 255, 255, 0.9);
+        }
+
+        #jsx-select {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         #top-bar button:not(#minimize-btn) {
@@ -399,6 +416,55 @@
             return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*\.jsx$/.test(value);
         }
 
+        const SELECT_LABEL_MIN_LENGTH = 24;
+        const SELECT_LABEL_MAX_LENGTH = 44;
+        const SELECT_LABEL_HORIZONTAL_CHROME = 38;
+        const SELECT_LABEL_AVERAGE_CHAR_RATIO = 0.56;
+        const UPLOADED_SELECT_SUFFIX = ' (uploaded)';
+
+        function truncateMiddle(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            if (maxLength <= 3) return text.slice(0, maxLength);
+            const keepLength = maxLength - 3;
+            const prefixLength = Math.ceil(keepLength * 0.62);
+            const suffixLength = keepLength - prefixLength;
+            return `${text.slice(0, prefixLength)}...${text.slice(text.length - suffixLength)}`;
+        }
+
+        function getSelectLabelMaxLength() {
+            const rect = selectEl.getBoundingClientRect();
+            if (rect.width <= 0) return SELECT_LABEL_MAX_LENGTH;
+            const fontSize = Number.parseFloat(window.getComputedStyle(selectEl).fontSize) || 14;
+            const usableWidth = Math.max(80, rect.width - SELECT_LABEL_HORIZONTAL_CHROME);
+            const estimatedLength = Math.floor(usableWidth / (fontSize * SELECT_LABEL_AVERAGE_CHAR_RATIO));
+            return Math.max(SELECT_LABEL_MIN_LENGTH, Math.min(SELECT_LABEL_MAX_LENGTH, estimatedLength));
+        }
+
+        function fullSelectLabelForFile(filename, source) {
+            return source === 'r2' ? `${filename}${UPLOADED_SELECT_SUFFIX}` : filename;
+        }
+
+        function displaySelectLabelForFile(filename, source, maxLength = SELECT_LABEL_MAX_LENGTH) {
+            const suffix = source === 'r2' ? UPLOADED_SELECT_SUFFIX : '';
+            const filenameMaxLength = Math.max(8, maxLength - suffix.length);
+            return `${truncateMiddle(filename, filenameMaxLength)}${suffix}`;
+        }
+
+        function syncSelectedSelectTitle() {
+            const selectedOption = selectEl.selectedOptions[0];
+            selectEl.title = selectedOption?.dataset.fullLabel || selectedOption?.textContent || '';
+        }
+
+        function refreshSelectOptionLabels() {
+            const maxLength = getSelectLabelMaxLength();
+            Array.from(selectEl.options).forEach((option) => {
+                const source = option.dataset.source || sourceForFile(option.value);
+                option.textContent = displaySelectLabelForFile(option.value, source, maxLength);
+                option.title = option.dataset.fullLabel || fullSelectLabelForFile(option.value, source);
+            });
+            syncSelectedSelectTitle();
+        }
+
         async function fetchUploadedManifest() {
             try {
                 const res = await fetch('/api/upload-manifest', {
@@ -437,10 +503,15 @@
             selectEl.textContent = '';
             ALLOWED_FILES.forEach(f => {
                 const opt = document.createElement('option');
+                const source = sourceForFile(f);
                 opt.value = f;
-                opt.textContent = FILE_SOURCES.get(f) === 'r2' ? `${f} (uploaded)` : f;
+                opt.dataset.source = source;
+                opt.dataset.fullLabel = fullSelectLabelForFile(f, source);
+                opt.textContent = displaySelectLabelForFile(f, source, getSelectLabelMaxLength());
+                opt.title = opt.dataset.fullLabel;
                 selectEl.appendChild(opt);
             });
+            refreshSelectOptionLabels();
         }
 
         const selectEl = document.getElementById('jsx-select');
@@ -630,6 +701,7 @@
             const hasOption = Array.from(selectEl.options).some((opt) => opt.value === filename);
             if (hasOption) {
                 selectEl.value = filename;
+                syncSelectedSelectTitle();
             }
         }
 
@@ -878,10 +950,13 @@
         }
 
         selectEl.addEventListener('change', (e) => {
+            syncSelectedSelectTitle();
             if (e.target.value) {
                 loadJSX(e.target.value, { pushHistory: true });
             }
         });
+
+        window.addEventListener('resize', refreshSelectOptionLabels);
 
         resetBtn.addEventListener('click', () => {
             if (!currentComponent || !currentFile) return;

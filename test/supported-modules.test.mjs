@@ -57,6 +57,42 @@ test('JSX import validator accepts supported bare modules and relative imports',
   `, { file: 'fixture.jsx' }));
 });
 
+test('JSX import validator accepts common React hooks and lucide dashboard icons', () => {
+  assert.doesNotThrow(() => assertSupportedJsxImports(`
+    import React, { useMemo, useState, useCallback } from 'react';
+    import {
+      Activity,
+      AlertTriangle,
+      AppWindow,
+      Banknote,
+      BarChart3,
+      BrainCircuit,
+      Calculator,
+      ChevronsDownUp,
+      ChevronsUpDown,
+      Cloud,
+      Cpu,
+      Filter,
+      Info,
+      LineChart,
+      Minus,
+      Network,
+      Server,
+      ShieldCheck,
+      TrendingDown,
+      TrendingUp,
+      Users
+    } from 'lucide-react';
+
+    export default function DashboardIcons() {
+      const icons = useMemo(() => [Activity, AlertTriangle, AppWindow], []);
+      const [expanded, setExpanded] = useState(false);
+      const toggle = useCallback(() => setExpanded((value) => !value), []);
+      return React.createElement(icons[0], { 'data-expanded': expanded, onClick: toggle });
+    }
+  `, { file: 'dashboard-icons.jsx' }));
+});
+
 test('JSX import validator rejects unsupported bare imports with a clear message', () => {
   assert.throws(
     () => assertSupportedJsxImports(`

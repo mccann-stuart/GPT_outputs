@@ -282,6 +282,43 @@
             return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*\.jsx$/.test(value);
         }
 
+        const SELECT_LABEL_MIN_LENGTH = 20;
+        const SELECT_LABEL_MAX_LENGTH = 36;
+        const SELECT_LABEL_HORIZONTAL_CHROME = 46;
+        const SELECT_LABEL_AVERAGE_CHAR_RATIO = 0.56;
+
+        function truncateMiddle(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            if (maxLength <= 3) return text.slice(0, maxLength);
+            const keepLength = maxLength - 3;
+            const prefixLength = Math.ceil(keepLength * 0.62);
+            const suffixLength = keepLength - prefixLength;
+            return `${text.slice(0, prefixLength)}...${text.slice(text.length - suffixLength)}`;
+        }
+
+        function getSelectLabelMaxLength() {
+            const rect = selectEl.getBoundingClientRect();
+            if (rect.width <= 0) return SELECT_LABEL_MAX_LENGTH;
+            const fontSize = Number.parseFloat(window.getComputedStyle(selectEl).fontSize) || 16;
+            const usableWidth = Math.max(80, rect.width - SELECT_LABEL_HORIZONTAL_CHROME);
+            const estimatedLength = Math.floor(usableWidth / (fontSize * SELECT_LABEL_AVERAGE_CHAR_RATIO));
+            return Math.max(SELECT_LABEL_MIN_LENGTH, Math.min(SELECT_LABEL_MAX_LENGTH, estimatedLength));
+        }
+
+        function syncSelectedSelectTitle() {
+            const selectedOption = selectEl.selectedOptions[0];
+            selectEl.title = selectedOption?.dataset.fullLabel || selectedOption?.textContent || '';
+        }
+
+        function refreshSelectOptionLabels() {
+            const maxLength = getSelectLabelMaxLength();
+            Array.from(selectEl.options).forEach((option) => {
+                option.textContent = truncateMiddle(option.value, maxLength);
+                option.title = option.dataset.fullLabel || option.value;
+            });
+            syncSelectedSelectTitle();
+        }
+
         async function fetchManifest() {
             const res = await fetch('jsx-manifest.json');
             if (!res.ok) throw new Error('Failed to load jsx-manifest.json');
@@ -297,9 +334,12 @@
             ALLOWED_FILES.forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f;
-                opt.textContent = f;
+                opt.dataset.fullLabel = f;
+                opt.textContent = truncateMiddle(f, getSelectLabelMaxLength());
+                opt.title = f;
                 selectEl.appendChild(opt);
             });
+            refreshSelectOptionLabels();
         }
 
         const selectEl = document.getElementById('jsx-select');
@@ -450,6 +490,7 @@
             const hasOption = Array.from(selectEl.options).some((opt) => opt.value === filename);
             if (hasOption) {
                 selectEl.value = filename;
+                syncSelectedSelectTitle();
             }
         }
 
@@ -599,10 +640,13 @@
         }
 
         selectEl.addEventListener('change', (e) => {
+            syncSelectedSelectTitle();
             if (e.target.value) {
                 loadJSX(e.target.value, { pushHistory: true });
             }
         });
+
+        window.addEventListener('resize', refreshSelectOptionLabels);
 
         resetBtn.addEventListener('click', () => {
             if (!currentComponent || !currentFile) return;

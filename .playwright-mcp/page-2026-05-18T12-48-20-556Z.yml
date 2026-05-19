@@ -1,0 +1,3 @@
+- generic [active] [ref=e1]:
+  - button "⚙️" [ref=e2] [cursor=pointer]
+  - generic [ref=e4]: "Failed to load JSX manifest: JSX manifest does not contain any loadable files"
