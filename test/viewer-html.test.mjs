@@ -19,9 +19,11 @@ test('iPhone viewer uses the same R2 upload manifest selection path as desktop',
     'const FILE_SOURCES = new Map()',
     "FILE_SOURCES.set(file, 'r2')",
     '/jsxupload/Files/',
-    "const UPLOADED_SELECT_SUFFIX = ' (uploaded)'",
   ]) {
     assert.match(desktopHtml, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(iphoneHtml, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+
+  assert.doesNotMatch(desktopHtml, /\(uploaded\)/);
+  assert.doesNotMatch(iphoneHtml, /\(uploaded\)/);
 });

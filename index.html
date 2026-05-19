@@ -420,7 +420,6 @@
         const SELECT_LABEL_MAX_LENGTH = 44;
         const SELECT_LABEL_HORIZONTAL_CHROME = 38;
         const SELECT_LABEL_AVERAGE_CHAR_RATIO = 0.56;
-        const UPLOADED_SELECT_SUFFIX = ' (uploaded)';
 
         function truncateMiddle(text, maxLength) {
             if (text.length <= maxLength) return text;
@@ -440,14 +439,12 @@
             return Math.max(SELECT_LABEL_MIN_LENGTH, Math.min(SELECT_LABEL_MAX_LENGTH, estimatedLength));
         }
 
-        function fullSelectLabelForFile(filename, source) {
-            return source === 'r2' ? `${filename}${UPLOADED_SELECT_SUFFIX}` : filename;
+        function fullSelectLabelForFile(filename) {
+            return filename;
         }
 
         function displaySelectLabelForFile(filename, source, maxLength = SELECT_LABEL_MAX_LENGTH) {
-            const suffix = source === 'r2' ? UPLOADED_SELECT_SUFFIX : '';
-            const filenameMaxLength = Math.max(8, maxLength - suffix.length);
-            return `${truncateMiddle(filename, filenameMaxLength)}${suffix}`;
+            return truncateMiddle(filename, maxLength);
         }
 
         function syncSelectedSelectTitle() {
