@@ -270,6 +270,7 @@
         const DEFAULT_PAGE_BG = '#f2f2f7';
 
         let ALLOWED_FILES = [];
+        const FILE_SOURCES = new Map();
 
         const SHARE_PARAM = 'state';
         const MAX_SHARED_STATE_LENGTH = 12000;
@@ -286,6 +287,7 @@
         const SELECT_LABEL_MAX_LENGTH = 36;
         const SELECT_LABEL_HORIZONTAL_CHROME = 46;
         const SELECT_LABEL_AVERAGE_CHAR_RATIO = 0.56;
+        const UPLOADED_SELECT_SUFFIX = ' (uploaded)';
 
         function truncateMiddle(text, maxLength) {
             if (text.length <= maxLength) return text;
@@ -305,6 +307,16 @@
             return Math.max(SELECT_LABEL_MIN_LENGTH, Math.min(SELECT_LABEL_MAX_LENGTH, estimatedLength));
         }
 
+        function fullSelectLabelForFile(filename, source) {
+            return source === 'r2' ? `${filename}${UPLOADED_SELECT_SUFFIX}` : filename;
+        }
+
+        function displaySelectLabelForFile(filename, source, maxLength = SELECT_LABEL_MAX_LENGTH) {
+            const suffix = source === 'r2' ? UPLOADED_SELECT_SUFFIX : '';
+            const filenameMaxLength = Math.max(8, maxLength - suffix.length);
+            return `${truncateMiddle(filename, filenameMaxLength)}${suffix}`;
+        }
+
         function syncSelectedSelectTitle() {
             const selectedOption = selectEl.selectedOptions[0];
             selectEl.title = selectedOption?.dataset.fullLabel || selectedOption?.textContent || '';
@@ -313,10 +325,28 @@
         function refreshSelectOptionLabels() {
             const maxLength = getSelectLabelMaxLength();
             Array.from(selectEl.options).forEach((option) => {
-                option.textContent = truncateMiddle(option.value, maxLength);
-                option.title = option.dataset.fullLabel || option.value;
+                const source = option.dataset.source || sourceForFile(option.value);
+                option.textContent = displaySelectLabelForFile(option.value, source, maxLength);
+                option.title = option.dataset.fullLabel || fullSelectLabelForFile(option.value, source);
             });
             syncSelectedSelectTitle();
+        }
+
+        async function fetchUploadedManifest() {
+            try {
+                const res = await fetch('/api/upload-manifest', {
+                    headers: { accept: 'application/json' }
+                });
+                if (!res.ok) {
+                    console.warn(`Failed to load uploaded manifest: ${res.status} ${res.statusText}`);
+                    return [];
+                }
+                const manifest = await res.json();
+                return Array.isArray(manifest.files) ? manifest.files.filter(isAllowedManifestFile) : [];
+            } catch (err) {
+                console.warn('Failed to load uploaded manifest:', err);
+                return [];
+            }
         }
 
         async function fetchManifest() {
@@ -326,17 +356,26 @@
             if (!Array.isArray(manifest)) {
                 throw new Error('JSX manifest must be an array');
             }
-            ALLOWED_FILES = manifest.filter(isAllowedManifestFile);
+            FILE_SOURCES.clear();
+            const staticFiles = manifest.filter(isAllowedManifestFile);
+            staticFiles.forEach((file) => FILE_SOURCES.set(file, 'static'));
+
+            const uploadedFiles = await fetchUploadedManifest();
+            uploadedFiles.forEach((file) => FILE_SOURCES.set(file, 'r2'));
+
+            ALLOWED_FILES = [...FILE_SOURCES.keys()];
             if (ALLOWED_FILES.length === 0) {
                 throw new Error('JSX manifest does not contain any loadable files');
             }
             selectEl.textContent = '';
             ALLOWED_FILES.forEach(f => {
                 const opt = document.createElement('option');
+                const source = sourceForFile(f);
                 opt.value = f;
-                opt.dataset.fullLabel = f;
-                opt.textContent = truncateMiddle(f, getSelectLabelMaxLength());
-                opt.title = f;
+                opt.dataset.source = source;
+                opt.dataset.fullLabel = fullSelectLabelForFile(f, source);
+                opt.textContent = displaySelectLabelForFile(f, source, getSelectLabelMaxLength());
+                opt.title = opt.dataset.fullLabel;
                 selectEl.appendChild(opt);
             });
             refreshSelectOptionLabels();
@@ -348,6 +387,7 @@
         const copyLinkBtn = document.getElementById('copy-link-btn');
 
         let currentFile = null;
+        let currentFileSource = 'static';
         let currentComponent = null;
         let currentDefaultSettings = {};
         let currentInitialSettings = {};
@@ -357,6 +397,16 @@
 
         function isPlainObject(value) {
             return value !== null && typeof value === 'object' && !Array.isArray(value);
+        }
+
+        function sourceForFile(filename) {
+            return FILE_SOURCES.get(filename) || 'static';
+        }
+
+        function urlForFile(filename) {
+            return sourceForFile(filename) === 'r2'
+                ? `/jsxupload/Files/${encodeURIComponent(filename)}`
+                : filename;
         }
 
         function deepClone(value) {
@@ -501,6 +551,12 @@
             } else {
                 url.searchParams.delete('file');
             }
+            if (currentFileSource === 'r2') {
+                url.searchParams.set('source', 'r2');
+            } else {
+                url.searchParams.delete('source');
+                url.searchParams.delete('version');
+            }
             const overrides = diffFromDefaults(currentSettings, currentDefaultSettings);
             if (overrides && Object.keys(overrides).length > 0) {
                 url.searchParams.set(SHARE_PARAM, encodeBase64Url({
@@ -573,10 +629,10 @@
 
                 root.render(React.createElement('div', { className: 'loading' }, `Loading ${filename}...`));
 
-                // Fetch the JSX file
-                const response = await fetch(filename);
+                const sourceUrl = urlForFile(filename);
+                const response = await fetch(sourceUrl);
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch ${filename}: ${response.status} ${response.statusText}`);
+                    throw new Error(`Failed to fetch ${sourceUrl}: ${response.status} ${response.statusText}`);
                 }
                 const jsxCode = await response.text();
 
@@ -589,7 +645,7 @@
                 }).code;
 
                 // Fix relative imports for blob URL
-                const fileUrl = new URL(filename, window.location.href).href;
+                const fileUrl = new URL(sourceUrl, window.location.href).href;
                 transpiled = transpiled.replace(/(import|export|from)\s+['"](\.[^'"]+)['"]/g, (match, p1, p2) => {
                     const absUrl = new URL(p2, fileUrl).href;
                     return `${p1} '${absUrl}'`;
@@ -616,6 +672,7 @@
                 }
 
                 currentFile = filename;
+                currentFileSource = sourceForFile(filename);
                 currentComponent = Component;
                 updateFileInputs(filename);
 
